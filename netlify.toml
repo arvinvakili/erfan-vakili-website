@@ -1,6 +1,6 @@
 [build]
-  command = "npm run build" # این خط را اضافه یا ویرایش کنید
-  publish = "build"         # این خط را اضافه یا ویرایش کنید
+  command = "npm install --force && npm run build"
+  publish = "build"
   environment = { NODE_VERSION = "18" }
 
 [[redirects]]
