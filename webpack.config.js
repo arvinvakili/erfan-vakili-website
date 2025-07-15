@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack'); // Import webpack
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
@@ -31,6 +32,13 @@ module.exports = {
       template: './public/index.html', // استفاده از index.html موجود
       filename: 'index.html',
     }),
+    // DefinePlugin برای دسترسی به متغیرهای محیطی در کد مرورگر
+    new webpack.DefinePlugin({
+      'process.env.REACT_APP_FIREBASE_CONFIG': JSON.stringify(process.env.REACT_APP_FIREBASE_CONFIG),
+      'process.env.REACT_APP_APP_ID': JSON.stringify(process.env.REACT_APP_APP_ID),
+      'process.env.REACT_APP_INITIAL_AUTH_TOKEN': JSON.stringify(process.env.REACT_APP_INITIAL_AUTH_TOKEN),
+      // می‌توانید هر متغیر محیطی دیگری که با REACT_APP_ شروع می‌شود را اینجا اضافه کنید
+    }),
   ],
   devServer: {
     static: {
@@ -43,5 +51,20 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js', '.jsx'],
+    fallback: {
+      "crypto": require.resolve("crypto-browserify"),
+      "stream": require.resolve("stream-browserify"),
+      "buffer": require.resolve("buffer/"),
+      "util": require.resolve("util/"),
+      "assert": require.resolve("assert/"),
+      "http": require.resolve("stream-http"),
+      "https": require.resolve("https-browserify"),
+      "os": require.resolve("os-browserify/browser"),
+      "url": require.resolve("url/"),
+      "path": require.resolve("path-browserify")
+    }
   },
+  node: {
+    global: true
+  }
 };
