@@ -1,13 +1,13 @@
 const path = require('path');
-const webpack = require('webpack'); // Import webpack
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.js', // نقطه شروع برنامه React شما
+  entry: './src/index.js',
   output: {
-    path: path.resolve(__dirname, 'build'), // پوشه خروجی build
-    filename: 'bundle.js', // نام فایل جاوااسکریپت نهایی
-    publicPath: '/', // مسیر عمومی برای asset ها
+    path: path.resolve(__dirname, 'build'),
+    filename: 'bundle.js',
+    publicPath: '/',
   },
   module: {
     rules: [
@@ -29,15 +29,13 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: './public/index.html', // استفاده از index.html موجود
+      template: './public/index.html',
       filename: 'index.html',
     }),
-    // DefinePlugin برای دسترسی به متغیرهای محیطی در کد مرورگر
     new webpack.DefinePlugin({
       'process.env.REACT_APP_FIREBASE_CONFIG': JSON.stringify(process.env.REACT_APP_FIREBASE_CONFIG),
       'process.env.REACT_APP_APP_ID': JSON.stringify(process.env.REACT_APP_APP_ID),
       'process.env.REACT_APP_INITIAL_AUTH_TOKEN': JSON.stringify(process.env.REACT_APP_INITIAL_AUTH_TOKEN),
-      // می‌توانید هر متغیر محیطی دیگری که با REACT_APP_ شروع می‌شود را اینجا اضافه کنید
     }),
   ],
   devServer: {
@@ -47,21 +45,21 @@ module.exports = {
     compress: true,
     port: 3000,
     open: true,
-    historyApiFallback: true, // برای SPA ها و ریدایرکت 404
+    historyApiFallback: true,
   },
   resolve: {
     extensions: ['.js', '.jsx'],
     fallback: {
-      "crypto": require.resolve("crypto-browserify"),
-      "stream": require.resolve("stream-browserify"),
-      "buffer": require.resolve("buffer/"),
-      "util": require.resolve("util/"),
-      "assert": require.resolve("assert/"),
-      "http": require.resolve("stream-http"),
-      "https": require.resolve("https-browserify"),
-      "os": require.resolve("os-browserify/browser"),
-      "url": require.resolve("url/"),
-      "path": require.resolve("path-browserify")
+      "crypto": "crypto-browserify", // Changed
+      "stream": "stream-browserify", // Changed
+      "buffer": "buffer/",           // Changed
+      "util": "util/",               // Changed
+      "assert": "assert/",           // Changed
+      "http": "stream-http",         // Changed
+      "https": "https-browserify",   // Changed
+      "os": "os-browserify/browser", // Changed
+      "url": "url/",                 // Changed
+      "path": "path-browserify"      // Changed
     }
   },
   node: {
