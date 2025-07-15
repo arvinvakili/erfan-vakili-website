@@ -4,20 +4,23 @@
   "private": true,
   "dependencies": {
     "firebase": "^10.12.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production"
   },
   "eslintConfig": {
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "globals": {
+      "__firebase_config": "readonly",
+      "__app_id": "readonly",
+      "__initial_auth_token": "readonly"
+    }
   },
   "browserslist": {
     "production": [
@@ -33,6 +36,15 @@
   },
   "devDependencies": {
     "tailwindcss": "^3.4.4",
-    "react-scripts": "5.0.1"
+    "@babel/core": "^7.15.5",
+    "@babel/preset-env": "^7.15.6",
+    "@babel/preset-react": "^7.14.5",
+    "babel-loader": "^8.2.2",
+    "css-loader": "^6.3.0",
+    "html-webpack-plugin": "^5.3.2",
+    "style-loader": "^3.3.0",
+    "webpack": "^5.58.2",
+    "webpack-cli": "^4.9.0",
+    "webpack-dev-server": "^4.3.1"
   }
 }
