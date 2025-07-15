@@ -1,5 +1,12 @@
 [build]
-  command = "npm install --force && npm run build"
+  command = "export PATH=$PATH:./node_modules/.bin && npm install --force && npm run build" # این خط را تغییر دهید
+  publish = "build"
+  environment = { NODE_VERSION = "18" }
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
   publish = "build"
   environment = { NODE_VERSION = "18" }
 
