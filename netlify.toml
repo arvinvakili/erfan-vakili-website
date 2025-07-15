@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build" # این خط را تغییر دهید
+  command = "npm run build" # فقط npm run build
   publish = "build"
   environment = { NODE_VERSION = "18" }
 
