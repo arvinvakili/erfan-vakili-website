@@ -1,9 +1,10 @@
-[build]
-  command = "npm run build" # فقط npm run build
-  publish = "build"
-  environment = { NODE_VERSION = "18" }
+    [build]
+      command = "npm run build"
+      publish = "build"
+      environment = { NODE_VERSION = "18", NODE_OPTIONS = "--openssl-legacy-provider" } # این خط برای رفع خطای OpenSSL اضافه شده است
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+    [[redirects]]
+      from = "/*"
+      to = "/index.html"
+      status = 200
+    
