@@ -1,61 +1,70 @@
-{
-  "name": "erfan-vakili-website",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "firebase": "^10.12.2",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2"
+const path = require('path');
+const webpack = require('webpack'); // Import webpack
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+
+module.exports = {
+  entry: './src/index.js', // نقطه شروع برنامه React شما
+  output: {
+    path: path.resolve(__dirname, 'build'), // پوشه خروجی build
+    filename: 'bundle.js', // نام فایل جاوااسکریپت نهایی
+    publicPath: '/', // مسیر عمومی برای asset ها
   },
-  "scripts": {
-    "start": "webpack serve --mode development",
-    "build": "webpack --mode production"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env', '@babel/preset-react'],
+          },
+        },
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
     ],
-    "globals": {
-      "__firebase_config": "readonly",
-      "__app_id": "readonly",
-      "__initial_auth_token": "readonly",
-      "process": "readonly"
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './public/index.html', // استفاده از index.html موجود
+      filename: 'index.html',
+    }),
+    // DefinePlugin برای دسترسی به متغیرهای محیطی در کد مرورگر
+    new webpack.DefinePlugin({
+      'process.env.REACT_APP_FIREBASE_CONFIG': JSON.stringify(process.env.REACT_APP_FIREBASE_CONFIG),
+      'process.env.REACT_APP_APP_ID': JSON.stringify(process.env.REACT_APP_APP_ID),
+      'process.env.REACT_APP_INITIAL_AUTH_TOKEN': JSON.stringify(process.env.REACT_APP_INITIAL_AUTH_TOKEN),
+      // می‌توانید هر متغیر محیطی دیگری که با REACT_APP_ شروع می‌شود را اینجا اضافه کنید
+    }),
+  ],
+  devServer: {
+    static: {
+      directory: path.join(__dirname, 'build'),
+    },
+    compress: true,
+    port: 3000,
+    open: true,
+    historyApiFallback: true, // برای SPA ها و ریدایرکت 404
+  },
+  resolve: {
+    extensions: ['.js', '.jsx'],
+    fallback: {
+      "crypto": require.resolve("crypto-browserify"),
+      "stream": require.resolve("stream-browserify"),
+      "buffer": require.resolve("buffer/"),
+      "util": require.resolve("util/"),
+      "assert": require.resolve("assert/"),
+      "http": require.resolve("stream-http"),
+      "https": require.resolve("https-browserify"),
+      "os": require.resolve("os-browserify/browser"),
+      "url": require.resolve("url/"),
+      "path": require.resolve("path-browserify")
     }
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "devDependencies": {
-    "tailwindcss": "^3.4.4",
-    "@babel/core": "^7.24.6",
-    "@babel/preset-env": "^7.24.6",
-    "@babel/preset-react": "^7.24.6",
-    "babel-loader": "^9.1.3",
-    "css-loader": "^7.1.2",
-    "html-webpack-plugin": "^5.6.0",
-    "style-loader": "^4.0.0",
-    "webpack": "^5.91.0",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^5.0.4",
-    "crypto-browserify": "^3.12.0",
-    "stream-browserify": "^3.0.0",
-    "buffer": "^6.0.3",
-    "util": "^0.12.5",
-    "assert": "^2.1.0",
-    "stream-http": "^3.2.0",
-    "https-browserify": "^1.0.0",
-    "os-browserify": "^0.3.0",
-    "url": "^0.11.3",
-    "path-browserify": "^1.0.1"
+  node: {
+    global: true
   }
-}
+};
