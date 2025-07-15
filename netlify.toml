@@ -1,4 +1,6 @@
 [build]
+  command = "npm run build" # این خط را اضافه یا ویرایش کنید
+  publish = "build"         # این خط را اضافه یا ویرایش کنید
   environment = { NODE_VERSION = "18" }
 
 [[redirects]]
