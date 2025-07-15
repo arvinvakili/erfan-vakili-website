@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, query, where, addDoc, deleteDoc } from 'firebase/firestore'; // Line 4: setDoc and where are here
+// eslint-disable-next-line no-unused-vars
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, query, where, addDoc, deleteDoc } from 'firebase/firestore'; 
 
 function App() {
   const [db, setDb] = useState(null);
