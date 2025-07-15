@@ -20,15 +20,20 @@ const App = () => {
     const initFirebase = async () => {
       try {
         // Retrieve Firebase config and app ID from global variables provided by Canvas
-        // Use typeof check to avoid ReferenceError if variables are truly undefined in some contexts
+        // These variables are injected by the Canvas environment, NOT from process.env
         const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Fallback for appId
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
+        console.log("Firebase Init: __firebase_config:", firebaseConfigString ? "Available" : "Not Available");
+        console.log("Firebase Init: __app_id:", appId);
+        console.log("Firebase Init: __initial_auth_token:", initialAuthToken ? "Available" : "Not Available");
+
         if (!firebaseConfigString) {
-          throw new Error("Firebase config is not available. Please ensure __firebase_config is set.");
+          throw new Error("Firebase config is not available. Please ensure __firebase_config is set in the Canvas environment.");
         }
         const firebaseConfig = JSON.parse(firebaseConfigString);
+        console.log("Firebase Init: Parsed firebaseConfig:", firebaseConfig);
 
         // Initialize Firebase app
         const app = initializeApp(firebaseConfig);
@@ -61,9 +66,10 @@ const App = () => {
                 console.log("Firebase: Signed in anonymously. UID:", firebaseAuth.currentUser.uid);
                 setAuthError(null);
               }
-            } catch (anonError) {
-              console.error("Firebase: Anonymous sign-in failed:", anonError.code, anonError.message);
-              setAuthError(`Failed to sign in anonymously. Please try again. Error: ${anonError.message}`);
+            } catch (authErr) { // Renamed anonError to authErr for clarity
+              console.error("Firebase: Authentication failed:", authErr.code, authErr.message);
+              // Set a more specific error message including the code and message from Firebase
+              setAuthError(`خطا در احراز هویت Firebase: ${authErr.message} (کد خطا: ${authErr.code}). لطفاً صفحه را بارگذاری مجدد کنید.`);
               setUserId(null); // Ensure userId is null on failure
             }
           }
@@ -75,7 +81,8 @@ const App = () => {
         return () => unsubscribe();
       } catch (error) {
         console.error("Firebase initialization error:", error);
-        setAuthError(`Firebase initialization error: ${error.message}`);
+        // Set a more specific error message for initialization failure
+        setAuthError(`خطا در مقداردهی اولیه Firebase: ${error.message}. لطفاً صفحه را بارگذاری مجدد کنید.`);
         setUserId(null); // Ensure userId is null on failure
         setIsAuthReady(true); // Still set to true to show the error message in UI
       }
@@ -351,7 +358,7 @@ const BookingSection = ({ db, userId }) => {
             onClick={handleGoToForm}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300 text-lg"
           >
-            ارسال برنامه ورزشی
+            ارسال برنامه ورزمه
           </button>
           {userId && (
             <p className="mt-4 text-xs text-gray-500">
