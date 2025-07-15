@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm install --force && npm run build" # این خط تغییر کرده است
   publish = "build"
   environment = { NODE_VERSION = "18", NODE_OPTIONS = "--openssl-legacy-provider" }
 
