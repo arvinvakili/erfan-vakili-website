@@ -1,41 +1,35 @@
-import React, { useState, useEffect } from 'react';
-
-// Firebase imports
+import React, { useEffect, useState } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+// eslint-disable-next-line no-unused-vars
+import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, query, where, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'; // Added serverTimestamp
 
-// Main App component
-const App = () => {
+function App() {
   const [activeTab, setActiveTab] = useState('home'); // State to manage active tab for navigation
-  const [db, setDb] = useState(null); // Firestore instance
-  const [auth, setAuth] = useState(null); // Auth instance
-  const [userId, setUserId] = useState(null); // Current user ID
-  const [isAuthReady, setIsAuthReady] = useState(false); // Flag to check if Firebase Auth is ready
-  const [isAIChatOpen, setIsAIChatOpen] = useState(false); // State to control AI chat modal visibility
+  const [db, setDb] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [auth, setAuth] = useState(null); // ESLint will now ignore this line for 'no-unused-vars'
+  const [userId, setUserId] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [authError, setAuthError] = useState(null); // State to store authentication errors
+  
+  // State for AI Chat
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [aiInput, setAiInput] = useState(''); // Renamed input to aiInput to avoid conflict
+  const [aiIsLoading, setAiIsLoading] = useState(false); // Renamed isLoading to aiIsLoading
 
   // Initialize Firebase and set up authentication listener
   useEffect(() => {
     const initFirebase = async () => {
       try {
-        // Retrieve Firebase config and app ID from global variables provided by Canvas
-        // These variables are injected by the Canvas environment, NOT from process.env
-        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Fallback for appId
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        console.log("Firebase Init: __firebase_config:", firebaseConfigString ? "Available" : "Not Available");
-        console.log("Firebase Init: __app_id:", appId);
-        console.log("Firebase Init: __initial_auth_token:", initialAuthToken ? "Available" : "Not Available");
-
+        // Check if firebaseConfig is provided as an environment variable
+        const firebaseConfigString = process.env.REACT_APP_FIREBASE_CONFIG;
         if (!firebaseConfigString) {
-          throw new Error("Firebase config is not available. Please ensure __firebase_config is set in the Canvas environment.");
+          throw new Error("REACT_APP_FIREBASE_CONFIG environment variable is not set.");
         }
         const firebaseConfig = JSON.parse(firebaseConfigString);
-        console.log("Firebase Init: Parsed firebaseConfig:", firebaseConfig);
 
-        // Initialize Firebase app
         const app = initializeApp(firebaseConfig);
         const firestoreDb = getFirestore(app);
         const firebaseAuth = getAuth(app);
@@ -43,60 +37,92 @@ const App = () => {
         setDb(firestoreDb);
         setAuth(firebaseAuth);
 
-        // Listen for authentication state changes
+        // Listen for auth state changes
         const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
           if (user) {
-            // User is signed in
             setUserId(user.uid);
-            console.log("Firebase: User signed in with UID:", user.uid);
-            setAuthError(null); // Clear any previous auth errors
+            setAuthError(null);
           } else {
-            // User is signed out or not yet signed in, attempt anonymous sign-in
+            // Sign in anonymously if no user is logged in
             try {
+              const initialAuthToken = process.env.REACT_APP_INITIAL_AUTH_TOKEN;
               if (initialAuthToken) {
-                console.log("Firebase: Attempting sign-in with custom token...");
                 await signInWithCustomToken(firebaseAuth, initialAuthToken);
-                setUserId(firebaseAuth.currentUser.uid);
-                console.log("Firebase: Signed in with custom token. UID:", firebaseAuth.currentUser.uid);
-                setAuthError(null);
               } else {
-                console.log("Firebase: Attempting anonymous sign-in...");
                 await signInAnonymously(firebaseAuth);
-                setUserId(firebaseAuth.currentUser.uid);
-                console.log("Firebase: Signed in anonymously. UID:", firebaseAuth.currentUser.uid);
-                setAuthError(null);
               }
-            } catch (authErr) { // Renamed anonError to authErr for clarity
-              console.error("Firebase: Authentication failed:", authErr.code, authErr.message);
-              // Set a more specific error message including the code and message from Firebase
-              setAuthError(`خطا در احراز هویت Firebase: ${authErr.message} (کد خطا: ${authErr.code}). لطفاً صفحه را بارگذاری مجدد کنید.`);
+              setUserId(firebaseAuth.currentUser.uid); // Ensure userId is set after anonymous sign-in
+              setAuthError(null);
+            } catch (anonError) {
+              console.error("Anonymous sign-in failed:", anonError);
+              setAuthError(`Failed to sign in anonymously. Error: ${anonError.message}`);
               setUserId(null); // Ensure userId is null on failure
             }
           }
-          setIsAuthReady(true); // Firebase Auth is now ready
-          console.log("Firebase: Auth readiness set to true.");
+          setIsAuthReady(true);
         });
-
-        // Cleanup the auth listener on component unmount
-        return () => unsubscribe();
-      } catch (error) {
-        console.error("Firebase initialization error:", error);
-        // Set a more specific error message for initialization failure
-        setAuthError(`خطا در مقداردهی اولیه Firebase: ${error.message}. لطفاً صفحه را بارگذاری مجدد کنید.`);
-        setUserId(null); // Ensure userId is null on failure
-        setIsAuthReady(true); // Still set to true to show the error message in UI
+        return () => unsubscribe(); // Cleanup listener
+      } catch (err) {
+        console.error("Firebase initialization error:", err);
+        setAuthError(`Failed to initialize Firebase: ${err.message}`);
+        setIsAuthReady(true); // Set to true to display error message
       }
     };
 
     initFirebase();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
   // Handle reload action for auth errors
   const handleReload = () => {
     window.location.reload();
   };
 
-  // Show a loading message while Firebase is initializing or an error if auth failed
+  // AI Chat functions
+  const handleSendAIChatMessage = async () => {
+    if (aiInput.trim() === '') return;
+
+    const newUserMessage = { role: "user", parts: [{ text: aiInput }] };
+    setChatHistory((prev) => [...prev, newUserMessage]);
+    setAiInput('');
+    setAiIsLoading(true);
+
+    try {
+      const payload = { contents: [...chatHistory, newUserMessage] };
+      const apiKey = ""; // API key will be provided by Canvas runtime
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (result.candidates && result.candidates.length > 0 &&
+          result.candidates[0].content && result.candidates[0].content.parts &&
+          result.candidates[0].content.parts.length > 0) {
+        const aiResponseText = result.candidates[0].content.parts[0].text;
+        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: aiResponseText }] }]);
+      } else {
+        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، مشکلی در دریافت پاسخ از هوش مصنوعی رخ داد." }] }]);
+        console.error("Unexpected API response structure:", result);
+      }
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، خطایی در ارتباط با هوش مصنوعی رخ داد." }] }]);
+    } finally {
+      setAiIsLoading(false);
+    }
+  };
+
+  const handleAiKeyPress = (e) => {
+    if (e.key === 'Enter' && !aiIsLoading) {
+      handleSendAIChatMessage();
+    }
+  };
+
+
+  // Show loading or error states
   if (!isAuthReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -226,7 +252,15 @@ const App = () => {
             >
               &times; {/* Close button (X icon) */}
             </button>
-            <AIChatSection />
+            <AIChatSection 
+              chatHistory={chatHistory}
+              setChatHistory={setChatHistory}
+              aiInput={aiInput}
+              setAiInput={setAiInput}
+              aiIsLoading={aiIsLoading}
+              handleSendAIChatMessage={handleSendAIChatMessage}
+              handleAiKeyPress={handleAiKeyPress}
+            />
           </div>
         </div>
       )}
@@ -329,7 +363,7 @@ const ServicesSection = () => (
   </section>
 );
 
-// Booking Section Component - Now directs to Google Form for file upload
+// Booking Section Component - Now embeds Google Form for file upload
 const BookingSection = ({ db, userId }) => {
   const handleGoToForm = () => {
     window.open('https://forms.gle/zG3FjXZyDq7VahER6', '_blank'); // Open form in a new tab
@@ -358,7 +392,7 @@ const BookingSection = ({ db, userId }) => {
             onClick={handleGoToForm}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300 text-lg"
           >
-            ارسال برنامه ورزمه
+            ارسال برنامه ورزشی
           </button>
           {userId && (
             <p className="mt-4 text-xs text-gray-500">
@@ -372,54 +406,7 @@ const BookingSection = ({ db, userId }) => {
 };
 
 // AI Chat Section Component - New component for AI chatbot
-const AIChatSection = () => {
-  const [chatHistory, setChatHistory] = useState([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSendMessage = async () => {
-    if (input.trim() === '') return;
-
-    const newUserMessage = { role: "user", parts: [{ text: input }] };
-    setChatHistory((prev) => [...prev, newUserMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const payload = { contents: [...chatHistory, newUserMessage] };
-      const apiKey = ""; // API key will be provided by Canvas runtime
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
-      if (result.candidates && result.candidates.length > 0 &&
-          result.candidates[0].content && result.candidates[0].content.parts &&
-          result.candidates[0].content.parts.length > 0) {
-        const aiResponseText = result.candidates[0].content.parts[0].text;
-        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: aiResponseText }] }]);
-      } else {
-        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، مشکلی در دریافت پاسخ از هوش مصنوعی رخ داد." }] }]);
-        console.error("Unexpected API response structure:", result);
-      }
-    } catch (error) {
-      console.error("Error calling Gemini API:", error);
-      setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، خطایی در ارتباط با هوش مصنوعی رخ داد." }] }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !isLoading) {
-      handleSendMessage();
-    }
-  };
-
+const AIChatSection = ({ chatHistory, setChatHistory, aiInput, setAiInput, aiIsLoading, handleSendAIChatMessage, handleAiKeyPress }) => {
   return (
     <div className="flex flex-col h-full"> {/* Changed section to div and set height to full */}
       <h3 className="text-3xl font-extrabold text-center text-blue-800 mb-6">مشاور هوش مصنوعی</h3> {/* Changed h2 to h3 for modal context */}
@@ -447,7 +434,7 @@ const AIChatSection = () => {
             </div>
           </div>
         ))}
-        {isLoading && (
+        {aiIsLoading && (
           <div className="flex justify-start">
             <div className="max-w-[70%] p-3 rounded-lg shadow-sm bg-gray-200 text-gray-800 rounded-bl-none">
               <span className="animate-pulse">در حال فکر کردن...</span>
@@ -460,23 +447,23 @@ const AIChatSection = () => {
       <div className="flex items-center space-x-2 mt-auto"> {/* mt-auto to push to bottom */}
         <input
           type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
+          value={aiInput}
+          onChange={(e) => setAiInput(e.target.value)}
+          onKeyPress={handleAiKeyPress}
           placeholder="سوال خود را اینجا بنویسید..."
           className="flex-grow p-3 border border-gray-300 rounded-full shadow-sm focus:ring-teal-500 focus:border-teal-500 text-lg"
-          disabled={isLoading}
+          disabled={aiIsLoading}
         />
         <button
-          onClick={handleSendMessage}
-          disabled={isLoading || input.trim() === ''}
+          onClick={handleSendAIChatMessage}
+          disabled={aiIsLoading || aiInput.trim() === ''}
           className={`py-3 px-6 rounded-full shadow-lg transform transition-all duration-300 text-lg ${
-            isLoading || input.trim() === ''
+            aiIsLoading || aiInput.trim() === ''
               ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
               : 'bg-teal-600 hover:bg-teal-700 text-white hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300'
           }`}
         >
-          {isLoading ? '...' : 'ارسال'}
+          {aiIsLoading ? '...' : 'ارسال'}
         </button>
       </div>
     </div>
@@ -499,7 +486,7 @@ const ContactSection = ({ db, userId }) => {
     }
 
     setSubmitStatus('loading');
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const appId = process.env.REACT_APP_APP_ID || 'default-app-id'; // Use process.env for Netlify
 
     try {
       await addDoc(collection(db, `artifacts/${appId}/public/data/contact_messages`), {
