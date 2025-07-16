@@ -154,20 +154,49 @@ const App = () => {
   useEffect(() => {
     const initFirebase = async () => {
       try {
-        // Retrieve Firebase config and app ID from global variables provided by Canvas
-        // These variables are injected by the Canvas environment
-        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Fallback for appId
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        let firebaseConfigString = null;
+        let appId = 'default-app-id'; // Fallback for appId
+        let initialAuthToken = null; // Default to null
 
-        console.log("Firebase Init: __firebase_config:", firebaseConfigString ? "Available" : "Not Available");
-        console.log("Firebase Init: __app_id:", appId);
-        console.log("Firebase Init: __initial_auth_token:", initialAuthToken ? "Available" : "Not Available");
+        // --- Debugging Firebase config retrieval ---
+        console.log("--- Firebase Init Debug Start ---");
+        console.log("typeof __firebase_config:", typeof __firebase_config);
+        console.log("typeof __app_id:", typeof __app_id);
+        console.log("typeof __initial_auth_token:", typeof __initial_auth_token);
+
+        // 1. Attempt to get config from Canvas global variables first (for Canvas environment)
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+          firebaseConfigString = __firebase_config;
+          appId = typeof __app_id !== 'undefined' ? __app_id : appId;
+          initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+          console.log("Firebase Init: Using __firebase_config from Canvas globals.");
+        }
+        // 2. If not found or empty from Canvas globals, try from process.env (for Netlify/local build)
+        else if (typeof process !== 'undefined' && process.env) {
+          if (process.env.REACT_APP_FIREBASE_CONFIG) {
+            firebaseConfigString = process.env.REACT_APP_FIREBASE_CONFIG;
+            appId = process.env.REACT_APP_APP_ID || appId;
+            // Note: initialAuthToken is typically not passed via REACT_APP_ for custom tokens in Netlify
+            console.log("Firebase Init: Using process.env.REACT_APP_FIREBASE_CONFIG from environment.");
+          }
+        }
+
+        console.log("Firebase Init: Final firebaseConfigString before parse:", firebaseConfigString);
+        console.log("Firebase Init: Final appId:", appId);
+        console.log("Firebase Init: Final initialAuthToken:", initialAuthToken ? "Available" : "Not Available");
+        console.log("--- Firebase Init Debug End ---");
+        // --- End Debugging ---
 
         if (!firebaseConfigString) {
-          throw new Error("Firebase config is not available. Please ensure __firebase_config is set in the Canvas environment.");
+          throw new Error("Firebase config is not available. Please ensure REACT_APP_FIREBASE_CONFIG is set in Netlify environment variables or __firebase_config in Canvas.");
         }
-        const firebaseConfig = JSON.parse(firebaseConfigString);
+
+        let firebaseConfig;
+        try {
+          firebaseConfig = JSON.parse(firebaseConfigString);
+        } catch (parseError) {
+          throw new Error(`Failed to parse Firebase config JSON: ${parseError.message}. Raw config: "${firebaseConfigString}"`);
+        }
 
         // Initialize Firebase app
         const app = initializeApp(firebaseConfig);
