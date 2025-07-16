@@ -1,12 +1,11 @@
-    import React from 'react';
-    import ReactDOM from 'react-dom'; // Changed from 'react-dom/client'
-    import './index.css';
-    import App from './App';
+import React from 'react';
+import ReactDOM from 'react-dom'; // Changed from 'react-dom/client'
+import './index.css';
+import App from './App';
 
-    ReactDOM.render( // Changed from createRoot
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>,
-      document.getElementById('root')
-    );
-    
+ReactDOM.render( // Changed from createRoot
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
