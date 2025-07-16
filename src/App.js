@@ -416,18 +416,17 @@ const App = () => {
         >
           {/* New Muscular Arm Icon */}
           <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* Background Circle - Optional, but gives a nice base */}
-            <circle cx="12" cy="12" r="10" fill="#3B82F6"/> {/* Blue-500 */}
-
-            {/* Muscular Arm (simplified bicep shape) */}
-            {/* Adjusted path for a more defined bicep and forearm */}
+            {/* Muscular Arm - simplified and more defined */}
             <path
-              d="M16 12 C18 10 18 8 16 7 L14 6 C12 5 10 6 10 8 L9 12 C9 14 10 15 12 15 L14 16 C16 17 18 16 16 12 Z"
-              fill="#10B981" /* Teal-600 */
-              className="animate-bicep-flex"
-              style={{ transformOrigin: '16px 12px' }} /* Pivot point for elbow flex */
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
+              fill="#3B82F6" /* Blue-500 for the background circle */
             />
-
+            <path
+              d="M15.5 12.5c-.7-.7-1.4-.7-2.1-.7s-1.4 0-2.1.7L9 14.5c-.7.7-1.4.7-2.1 0s-.7-1.4 0-2.1L9.5 10c.7-.7 1.4-.7 2.1-.7s1.4 0 2.1.7L15.5 12.5zM12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+              fill="#10B981" /* Teal-600 for the arm */
+              className="animate-bicep-flex"
+              style={{ transformOrigin: '12px 10px' }} /* Adjust pivot point for elbow flex */
+            />
             {/* Hand/Fist - simplified */}
             <circle cx="10" cy="15.5" r="2" fill="#065F46"/> {/* Darker teal for fist */}
           </svg>
@@ -856,7 +855,7 @@ const ContactSection = ({ db, userId }) => {
                   : 'bg-teal-600 hover:bg-teal-700 text-white hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-500'
               }`}
             >
-              {submitStatus === 'loading' ? 'در حال ارسال...' : 'ارسال پیام'}
+              {submitStatus === 'loading' ? '...' : 'ارسال پیام'}
             </button>
             {submitStatus === 'success' && (
               <p className="mt-4 text-green-500 font-semibold font-vazirmatn">پیام شما با موفقیت ارسال شد!</p>
