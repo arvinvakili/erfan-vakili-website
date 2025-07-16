@@ -128,6 +128,18 @@ const AnimatedTitle = () => {
   );
 };
 
+// Define a hardcoded Firebase config as a fallback
+// This should match your actual Firebase project configuration.
+// Replace with your actual Firebase config if it differs.
+const HARDCODED_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBWoRrUVDYyBd5IYm138cuD04Urx3KWpGA", // Replace with your actual API Key
+  authDomain: "erfan2-523ab.firebaseapp.com",
+  projectId: "erfan2-523ab",
+  storageBucket: "erfan2-523ab.firebasestorage.app",
+  messagingSenderId: "1043803138398",
+  appId: "1:1043803138398:web:8b7b1c79aae18a701147cf",
+  measurementId: "G-K0M82KSGDS"
+};
 
 // Main App component
 const App = () => {
@@ -154,9 +166,9 @@ const App = () => {
   useEffect(() => {
     const initFirebase = async () => {
       try {
-        let firebaseConfigString = null;
-        let appId = 'default-app-id'; // Fallback for appId
-        let initialAuthToken = null; // Default to null
+        let firebaseConfigToUse = null;
+        let appIdToUse = 'default-app-id'; // Fallback for appId
+        let initialAuthTokenToUse = null; // Default to null
 
         // --- Debugging Firebase config retrieval ---
         console.log("--- Firebase Init Debug Start ---");
@@ -168,38 +180,47 @@ const App = () => {
         console.log("--- End Firebase Init Debug Start ---");
 
 
-        // Prioritize Netlify/local environment variables first for deployed apps
+        // 1. Prioritize Netlify/local environment variables first for deployed apps
         if (typeof process !== 'undefined' && process.env && process.env.REACT_APP_FIREBASE_CONFIG) {
-          firebaseConfigString = process.env.REACT_APP_FIREBASE_CONFIG;
-          appId = process.env.REACT_APP_APP_ID || appId;
-          console.log("Firebase Init: Using REACT_APP_FIREBASE_CONFIG from environment (Netlify/local).");
-        }
-        // Fallback to Canvas global variables for Canvas preview environment
-        else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-          firebaseConfigString = __firebase_config;
-          appId = typeof __app_id !== 'undefined' ? __app_id : appId;
-          initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-          console.log("Firebase Init: Using __firebase_config from Canvas globals.");
+          try {
+            firebaseConfigToUse = JSON.parse(process.env.REACT_APP_FIREBASE_CONFIG);
+            appIdToUse = process.env.REACT_APP_APP_ID || appIdToUse;
+            console.log("Firebase Init: Successfully parsed REACT_APP_FIREBASE_CONFIG from environment.");
+          } catch (e) {
+            console.error("Firebase Init: Failed to parse REACT_APP_FIREBASE_CONFIG from environment:", e.message);
+          }
         }
 
-        console.log("Firebase Init: Final firebaseConfigString before parse:", firebaseConfigString);
-        console.log("Firebase Init: Final appId:", appId);
-        console.log("Firebase Init: Final initialAuthToken:", initialAuthToken ? "Available" : "Not Available");
+        // 2. Fallback to Canvas global variables if Netlify/local env var failed or not present
+        if (!firebaseConfigToUse && typeof __firebase_config !== 'undefined' && __firebase_config) {
+          try {
+            firebaseConfigToUse = JSON.parse(__firebase_config);
+            appIdToUse = typeof __app_id !== 'undefined' ? __app_id : appIdToUse;
+            initialAuthTokenToUse = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            console.log("Firebase Init: Successfully parsed __firebase_config from Canvas globals.");
+          } catch (e) {
+            console.error("Firebase Init: Failed to parse __firebase_config from Canvas globals:", e.message);
+          }
+        }
+
+        // 3. Ultimate fallback to hardcoded config
+        if (!firebaseConfigToUse) {
+          firebaseConfigToUse = HARDCODED_FIREBASE_CONFIG;
+          appIdToUse = HARDCODED_FIREBASE_CONFIG.appId || appIdToUse; // Use hardcoded appId
+          console.log("Firebase Init: Falling back to hardcoded Firebase config.");
+        }
+
+        console.log("Firebase Init: Final firebaseConfig used:", firebaseConfigToUse);
+        console.log("Firebase Init: Final appId used:", appIdToUse);
+        console.log("Firebase Init: Final initialAuthToken used:", initialAuthTokenToUse ? "Available" : "Not Available");
         console.log("--- Firebase Init Debug End ---");
 
-        if (!firebaseConfigString) {
-          throw new Error("Firebase config is not available. Please ensure REACT_APP_FIREBASE_CONFIG is set in Netlify environment variables or __firebase_config in Canvas.");
-        }
-
-        let firebaseConfig;
-        try {
-          firebaseConfig = JSON.parse(firebaseConfigString);
-        } catch (parseError) {
-          throw new Error(`Failed to parse Firebase config JSON: ${parseError.message}. Raw config: "${firebaseConfigString}"`);
+        if (!firebaseConfigToUse || Object.keys(firebaseConfigToUse).length === 0) {
+          throw new Error("Firebase config is empty or invalid after all attempts.");
         }
 
         // Initialize Firebase app
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(firebaseConfigToUse);
         const firestoreDb = getFirestore(app);
         const firebaseAuth = getAuth(app);
 
@@ -216,9 +237,9 @@ const App = () => {
           } else {
             // User is signed out or not yet signed in, attempt anonymous sign-in
             try {
-              if (initialAuthToken) {
+              if (initialAuthTokenToUse) {
                 console.log("Firebase: Attempting sign-in with custom token...");
-                await signInWithCustomToken(firebaseAuth, initialAuthToken);
+                await signInWithCustomToken(firebaseAuth, initialAuthTokenToUse);
                 setUserId(firebaseAuth.currentUser.uid);
                 console.log("Firebase: Signed in with custom token. UID:", firebaseAuth.currentUser.uid);
                 setAuthError(null);
