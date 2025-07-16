@@ -1,7 +1,133 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useRef
+
+// Firebase imports
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, collection, onSnapshot, query, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'; // Added serverTimestamp
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+// Define keyframes for animations and import fonts
+const globalStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Lalezar&display=swap');
+
+  /* Border Glow Animation */
+  @keyframes glow-border {
+    0% {
+      box-shadow: 0 0 5px rgba(59, 130, 246, 0.4); /* blue-500 with opacity */
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); /* Stronger glow */
+    }
+    100% {
+      box-shadow: 0 0 5px rgba(59, 130, 246, 0.4);
+    }
+  }
+
+  .animate-glow-border {
+    animation: glow-border 3s infinite ease-in-out;
+  }
+
+  /* Clock Hand Animations */
+  @keyframes rotate-hand-hour {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes rotate-hand-minute {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(720deg); } /* Faster rotation for minute hand */
+  }
+
+  .animate-hour-hand {
+    animation: rotate-hand-hour 2s linear infinite;
+  }
+
+  .animate-minute-hand {
+    animation: rotate-hand-minute 2s linear infinite;
+  }
+
+  /* Text Shine Effect - White for Erfan */
+  @keyframes white-shine {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .white-shine-text {
+    background: linear-gradient(to right, #ffffff00 0%, #ffffff80 50%, #ffffff00 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: white-shine 3s infinite linear;
+  }
+
+  /* Text Shine Effect - Blue for Vakili */
+  @keyframes blue-shine {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .blue-shine-text {
+    background: linear-gradient(to right, rgba(59, 130, 246, 0) 0%, rgba(59, 130, 246, 0.5) 50%, rgba(59, 130, 246, 0) 100%); /* blue-500 with opacity */
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: blue-shine 3s infinite linear;
+  }
+`;
+
+// Component for the animated clock icon
+const AnimatedClockIcon = ({ isAnimating }) => {
+  // Initial positions for hands (e.g., hour at 12, minute at 3)
+  const initialHourRotation = -90; // 12 o'clock (SVG default is 3 o'clock)
+  const initialMinuteRotation = 0; // 3 o'clock
+
+  return (
+    <svg className="w-24 h-24 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" strokeWidth="1.5"></circle> {/* Thicker circle border */}
+      {/* Hour hand */}
+      <rect
+        x="11" y="7" width="2" height="6" rx="1" ry="1"
+        transform={`rotate(${isAnimating ? 0 : initialHourRotation} 12 12)`}
+        className={isAnimating ? 'animate-hour-hand' : ''}
+        style={{ transformOrigin: 'center center', transition: 'transform 1s ease-out' }} // Smooth transition back
+      ></rect>
+      {/* Minute hand */}
+      <rect
+        x="11" y="4" width="2" height="9" rx="1" ry="1"
+        transform={`rotate(${isAnimating ? 0 : initialMinuteRotation} 12 12)`}
+        className={isAnimating ? 'animate-minute-hand' : ''}
+        style={{ transformOrigin: 'center center', transition: 'transform 1s ease-out' }} // Smooth transition back
+      ></rect>
+    </svg>
+  );
+};
+
+// Component for the animated title with shine effect
+const AnimatedTitle = () => {
+  return (
+    <div className="relative inline-block overflow-hidden">
+      <span className="block text-blue-500 relative">
+        Erfan
+        <span className="absolute inset-0 block white-shine-text pointer-events-none">Erfan</span>
+      </span>
+      <span className="block text-gray-100 relative">
+        Vakili
+        <span className="absolute inset-0 block blue-shine-text pointer-events-none">Vakili</span>
+      </span>
+    </div>
+  );
+};
+
 
 // Main App component
 const App = () => {
@@ -13,22 +139,33 @@ const App = () => {
   const [isAIChatOpen, setIsAIChatOpen] = useState(false); // State to control AI chat modal visibility
   const [authError, setAuthError] = useState(null); // State to store authentication errors
 
+  // Inject global styles (keyframes and font import)
+  useEffect(() => {
+    const styleSheet = document.createElement("style");
+    styleSheet.type = "text/css";
+    styleSheet.innerText = globalStyles;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
+
   // Initialize Firebase and set up authentication listener
   useEffect(() => {
     const initFirebase = async () => {
       try {
-        // Retrieve Firebase config and app ID from environment variables provided by Netlify
-        // These variables MUST be prefixed with REACT_APP_ in Netlify settings
-        const firebaseConfigString = process.env.REACT_APP_FIREBASE_CONFIG;
-        const appId = process.env.REACT_APP_APP_ID || 'default-app-id'; // Fallback for appId
-        const initialAuthToken = process.env.REACT_APP_INITIAL_AUTH_TOKEN;
+        // Retrieve Firebase config and app ID from global variables provided by Canvas
+        // These variables are injected by the Canvas environment
+        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Fallback for appId
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        console.log("Firebase Init (Netlify): REACT_APP_FIREBASE_CONFIG:", firebaseConfigString ? "Available" : "Not Available");
-        console.log("Firebase Init (Netlify): REACT_APP_APP_ID:", appId);
-        console.log("Firebase Init (Netlify): REACT_APP_INITIAL_AUTH_TOKEN:", initialAuthToken ? "Available" : "Not Available");
+        console.log("Firebase Init: __firebase_config:", firebaseConfigString ? "Available" : "Not Available");
+        console.log("Firebase Init: __app_id:", appId);
+        console.log("Firebase Init: __initial_auth_token:", initialAuthToken ? "Available" : "Not Available");
 
         if (!firebaseConfigString) {
-          throw new Error("Firebase config is not available. Please ensure REACT_APP_FIREBASE_CONFIG is set as an environment variable in Netlify.");
+          throw new Error("Firebase config is not available. Please ensure __firebase_config is set in the Canvas environment.");
         }
         const firebaseConfig = JSON.parse(firebaseConfigString);
 
@@ -45,32 +182,31 @@ const App = () => {
           if (user) {
             // User is signed in
             setUserId(user.uid);
-            console.log("Firebase (Netlify): User signed in with UID:", user.uid);
+            console.log("Firebase: User signed in with UID:", user.uid);
             setAuthError(null); // Clear any previous auth errors
           } else {
             // User is signed out or not yet signed in, attempt anonymous sign-in
             try {
               if (initialAuthToken) {
-                console.log("Firebase (Netlify): Attempting sign-in with custom token...");
+                console.log("Firebase: Attempting sign-in with custom token...");
                 await signInWithCustomToken(firebaseAuth, initialAuthToken);
                 setUserId(firebaseAuth.currentUser.uid);
-                console.log("Firebase (Netlify): Signed in with custom token. UID:", firebaseAuth.currentUser.uid);
+                console.log("Firebase: Signed in with custom token. UID:", firebaseAuth.currentUser.uid);
                 setAuthError(null);
               } else {
-                console.log("Firebase (Netlify): Attempting anonymous sign-in...");
                 await signInAnonymously(firebaseAuth);
                 setUserId(firebaseAuth.currentUser.uid);
-                console.log("Firebase (Netlify): Signed in anonymously. UID:", firebaseAuth.currentUser.uid);
+                console.log("Firebase: Signed in anonymously. UID:", firebaseAuth.currentUser.uid);
                 setAuthError(null);
               }
             } catch (authErr) {
-              console.error("Firebase (Netlify): Authentication failed:", authErr.code, authErr.message);
+              console.error("Firebase: Authentication failed:", authErr.code, authErr.message);
               setAuthError(`خطا در احراز هویت Firebase: ${authErr.message} (کد خطا: ${authErr.code}). لطفاً صفحه را بارگذاری مجدد کنید.`);
               setUserId(null); // Ensure userId is null on failure
             }
           }
           setIsAuthReady(true); // Firebase Auth is now ready
-          console.log("Firebase (Netlify): Auth readiness set to true.");
+          console.log("Firebase: Auth readiness set to true.");
         });
 
         // Cleanup the auth listener on component unmount
@@ -94,8 +230,8 @@ const App = () => {
   // Show a loading message while Firebase is initializing or an error if auth failed
   if (!isAuthReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-xl font-semibold text-blue-700">در حال بارگذاری سایت...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <p className="text-xl font-semibold text-blue-400">در حال بارگذاری سایت...</p>
       </div>
     );
   }
@@ -103,12 +239,12 @@ const App = () => {
   if (authError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900">
-        <div className="bg-red-700 text-white p-8 rounded-lg shadow-xl text-center max-w-sm">
+        <div className="bg-red-800 text-white p-8 rounded-lg shadow-xl text-center max-w-sm border-2 border-red-600">
           <h2 className="text-3xl font-bold mb-4">خطا</h2>
           <p className="text-lg mb-6">{authError}</p>
           <button
             onClick={handleReload}
-            className="bg-white text-red-700 font-bold py-3 px-6 rounded-full shadow-lg hover:bg-red-100 transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-red-300"
+            className="bg-white text-red-800 font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-red-100 transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-red-300"
           >
             بارگذاری مجدد
           </button>
@@ -131,19 +267,20 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-inter text-gray-800">
+    // Added dir="rtl" for consistent right-to-left layout
+    <div className="min-h-screen bg-gray-900 font-vazirmatn text-gray-200" dir="rtl">
       {/* Navigation Bar */}
-      <nav className="bg-gradient-to-r from-blue-800 to-teal-600 py-2 px-6 shadow-xl rounded-b-3xl">
+      <nav className="bg-gray-950 py-3 px-4 sm:px-8 shadow-2xl rounded-b-xl border-b-4 border-blue-700">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
-          <div className="text-white text-3xl md:text-4xl font-extrabold mb-2 md:mb-0">
-            <span className="text-yellow-300">Erfan</span> <span className="text-white">Vakili</span>
+          <div className="text-white text-4xl md:text-5xl font-extrabold mb-3 md:mb-0 text-center md:text-right">
+            <AnimatedTitle /> {/* Use the new AnimatedTitle component */}
           </div>
-          <ul className="flex flex-wrap justify-center space-x-4 md:space-x-8">
+          <ul className="flex flex-wrap justify-center space-x-2 sm:space-x-4 md:space-x-8 mt-3 md:mt-0"> {/* Adjusted spacing for mobile */}
             <li>
               <button
                 onClick={() => setActiveTab('home')}
-                className={`text-white text-lg font-bold py-2 px-6 rounded-full transition-colors duration-300 hover:bg-white hover:text-blue-800 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
-                  activeTab === 'home' ? 'bg-blue-200 text-blue-900 shadow-md' : ''
+                className={`text-gray-300 text-base sm:text-lg font-semibold py-2 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500 ${
+                  activeTab === 'home' ? 'bg-blue-700 text-white shadow-md' : ''
                 }`}
               >
                 صفحه اصلی
@@ -152,8 +289,8 @@ const App = () => {
             <li>
               <button
                 onClick={() => setActiveTab('about')}
-                className={`text-white text-lg font-bold py-2 px-6 rounded-full transition-colors duration-300 hover:bg-white hover:text-blue-800 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
-                  activeTab === 'about' ? 'bg-blue-200 text-blue-900 shadow-md' : ''
+                className={`text-gray-300 text-base sm:text-lg font-semibold py-2 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500 ${
+                  activeTab === 'about' ? 'bg-blue-700 text-white shadow-md' : ''
                 }`}
               >
                 درباره مربی
@@ -162,8 +299,8 @@ const App = () => {
             <li>
               <button
                 onClick={() => setActiveTab('services')}
-                className={`text-white text-lg font-bold py-2 px-6 rounded-full transition-colors duration-300 hover:bg-white hover:text-blue-800 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
-                  activeTab === 'services' ? 'bg-blue-200 text-blue-900 shadow-md' : ''
+                className={`text-gray-300 text-base sm:text-lg font-semibold py-2 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500 ${
+                  activeTab === 'services' ? 'bg-blue-700 text-white shadow-md' : ''
                 }`}
               >
                 خدمات
@@ -172,19 +309,18 @@ const App = () => {
             <li>
               <button
                 onClick={() => setActiveTab('booking')}
-                className={`text-white text-lg font-bold py-2 px-6 rounded-full transition-colors duration-300 hover:bg-white hover:text-blue-800 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
-                  activeTab === 'booking' ? 'bg-blue-200 text-blue-900 shadow-md' : ''
+                className={`text-gray-300 text-base sm:text-lg font-semibold py-2 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500 ${
+                  activeTab === 'booking' ? 'bg-blue-700 text-white shadow-md' : ''
                 }`}
               >
                 رزرو نوبت
               </button>
             </li>
-            {/* Removed AI Chat button from navigation */}
             <li>
               <button
                 onClick={() => setActiveTab('contact')}
-                className={`text-white text-lg font-bold py-2 px-6 rounded-full transition-colors duration-300 hover:bg-white hover:text-blue-800 focus:outline-none focus:ring-4 focus:ring-yellow-300 ${
-                  activeTab === 'contact' ? 'bg-blue-200 text-blue-900 shadow-md' : ''
+                className={`text-gray-300 text-base sm:text-lg font-semibold py-2 px-4 sm:px-6 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500 ${
+                  activeTab === 'contact' ? 'bg-blue-700 text-white shadow-md' : ''
                 }`}
               >
                 تماس با ما
@@ -195,39 +331,64 @@ const App = () => {
       </nav>
 
       {/* Main Content Area */}
-      <main className="container mx-auto p-4 py-10">
+      <main className="container mx-auto p-4 py-12">
         {renderContent()}
       </main>
 
       {/* Floating AI Chat Button */}
-      <button
-        onClick={() => setIsAIChatOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-700 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300 z-50 flex items-center justify-center text-lg font-bold"
-        style={{ width: '60px', height: '60px' }} // Fixed size for round button
-      >
-        {/* Chat icon - You can replace this with a better icon if desired */}
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-        </svg>
-      </button>
+      {!isAIChatOpen && ( // Conditionally render the button
+        <button
+          onClick={() => setIsAIChatOpen(true)}
+          className="fixed bottom-8 right-8 bg-blue-700 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500 z-50 flex items-center justify-center text-lg font-bold"
+          style={{ width: '64px', height: '64px' }} // Slightly larger for prominence
+        >
+          {/* Chat icon */}
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+          </svg>
+        </button>
+      )}
 
       {/* AI Chat Modal */}
       {isAIChatOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]"> {/* Higher z-index */}
-          <div className="bg-white p-6 rounded-3xl shadow-2xl w-11/12 max-w-2xl h-5/6 flex flex-col relative">
-            <button
-              onClick={() => setIsAIChatOpen(false)}
-              className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-3xl font-bold focus:outline-none"
-            >
-              &times; {/* Close button (X icon) */}
-            </button>
-            <AIChatSection />
-          </div>
+        <div
+          className="fixed bottom-8 right-8 w-80 md:w-96 h-[400px] md:h-[500px] p-6 rounded-2xl shadow-2xl flex flex-col relative border-2 border-teal-600 z-[100] transform transition-all duration-300 ease-out"
+          style={{
+            backgroundColor: '#1a4d4d', // Base dark teal color for massage theme
+            // Subtle diagonal lines for a textured background (honeycomb-like)
+            backgroundImage: `
+              linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+              linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+              linear-gradient(45deg, rgba(255,255,255,0.03) 75%, transparent 75%),
+              linear-gradient(-45deg, rgba(255,255,255,0.03) 75%, transparent 75%)
+            `,
+            backgroundSize: '20px 20px',
+            // Position the modal exactly where the button was
+            // Adjust right and bottom based on the button's size (64px) and its bottom/right-8
+            // The modal itself has p-6 (24px) padding, so its actual content starts 24px in
+            // We want the modal to effectively replace the button's footprint + extend upwards
+            // The button is 64px tall, bottom-8. So its top is bottom-8 + 64px = bottom-72px.
+            // If modal is 400px tall, then its top should be bottom-8 + 64px + 400px = bottom-472px.
+            // This is complex with fixed positioning. A simpler approach is to set its bottom/right
+            // to match the button's bottom/right, and let its height/width expand from there.
+            // The current bottom-24 right-8 is a good starting point for "above the icon".
+            // If the user wants it *exactly* where the icon was, then the icon must be hidden
+            // and the modal's bottom/right must be adjusted.
+            // Let's keep bottom-24 right-8 for "above" and hide the button.
+          }}
+        >
+          <button
+            onClick={() => setIsAIChatOpen(false)}
+            className="absolute top-4 left-4 text-gray-400 hover:text-white text-3xl font-bold focus:outline-none" // Adjusted to left for RTL
+          >
+            &times; {/* Close button (X icon) */}
+          </button>
+          <AIChatSection />
         </div>
       )}
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white p-6 mt-16 rounded-t-3xl shadow-inner">
+      <footer className="bg-gray-950 text-gray-400 p-8 mt-20 rounded-t-xl shadow-inner border-t-4 border-blue-700">
         <div className="container mx-auto text-center text-sm">
           <p>&copy; 2025 وب‌سایت مربی ورزش و ماساژ. تمامی حقوق محفوظ است.</p>
           <p className="mt-2 text-gray-500">Designed by Arvin Vakili</p>
@@ -239,16 +400,16 @@ const App = () => {
 
 // Home Section Component
 const HomeSection = () => (
-  <section className="bg-gradient-to-br from-blue-100 to-white p-8 md:p-12 rounded-3xl shadow-2xl mb-16 border border-blue-200">
+  <section className="bg-gradient-to-br from-gray-800 to-gray-900 p-10 md:p-16 rounded-2xl shadow-2xl mb-20 border-4 border-blue-700 animate-glow-border">
     <div className="flex flex-col items-center justify-center text-center">
       <div className="w-full">
-        <h1 className="text-5xl lg:text-7xl font-extrabold text-blue-900 leading-tight mb-6 animate-fade-in-down">
-          به دنیای <span className="text-teal-700">سلامتی</span> و <span className="text-yellow-600">انرژی</span> خوش آمدید!
+        <h1 className="text-5xl sm:text-6xl lg:text-8xl font-extrabold text-white leading-tight mb-8 animate-fade-in-down font-lalezar">
+          به دنیای <span className="text-blue-500">قدرت</span> و <span className="text-teal-500">آرامش</span> خوش آمدید!
         </h1>
-        <p className="text-xl lg:text-2xl font-normal text-gray-700 leading-relaxed mb-8 animate-fade-in-up">
+        <p className="text-lg sm:text-xl lg:text-2xl font-light text-gray-300 leading-relaxed mb-10 animate-fade-in-up font-vazirmatn">
           با برنامه‌های ورزشی شخصی‌سازی شده و ماساژهای درمانی، به بهترین نسخه از خودتان تبدیل شوید.
         </p>
-        <button className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-10 rounded-full shadow-xl transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300 text-lg">
+        <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 px-10 sm:px-12 rounded-lg shadow-xl transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 text-lg sm:text-xl tracking-wide font-vazirmatn">
           رزرو نوبت همین حالا!
         </button>
       </div>
@@ -258,23 +419,23 @@ const HomeSection = () => (
 
 // About Coach Section Component
 const AboutCoachSection = () => (
-  <section className="bg-white p-8 md:p-12 rounded-3xl shadow-xl mb-16 border border-gray-200">
-    <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-800 mb-10">درباره مربی</h2>
-    <div className="flex flex-col md:flex-row items-center md:items-start gap-10">
+  <section className="bg-gray-800 p-10 md:p-16 rounded-2xl shadow-xl mb-20 border-4 border-blue-700 animate-glow-border">
+    <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-center text-blue-500 mb-12 font-lalezar">درباره مربی</h2>
+    <div className="flex flex-col md:flex-row items-center md:items-start gap-12">
       <div className="md:w-1/3 flex justify-center">
         <img
-          src="https://placehold.co/350x350/B0E0E6/333333?text=تصویر+مربی"
+          src="https://placehold.co/400x400/334155/E2E8F0?text=تصویر+مربی" // Darker placeholder
           alt="تصویر مربی"
-          className="rounded-full w-72 h-72 object-cover shadow-lg border-6 border-teal-500 transform hover:scale-105 transition-transform duration-300"
-          onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/350x350/B0E0E6/333333?text=تصویر+مربی"; }}
+          className="rounded-full w-64 h-64 sm:w-80 sm:h-80 object-cover shadow-lg border-6 border-blue-600 transform hover:scale-105 transition-transform duration-300"
+          onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/400x400/334155/E2E8F0?text=تصویر+مربی"; }}
         />
       </div>
       <div className="md:w-2/3 text-center md:text-right">
-        <h3 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-6">نام مربی: [نام مربی]</h3>
-        <p className="text-lg lg:text-xl font-normal text-gray-700 leading-relaxed mb-6">
+        <h3 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-8 font-lalezar">نام مربی: [نام مربی]</h3>
+        <p className="text-base sm:text-lg lg:text-xl font-light text-gray-300 leading-relaxed mb-8 font-vazirmatn">
           [نام مربی] با بیش از ۱۰ سال تجربه در زمینه مربیگری ورزشی و ماساژ درمانی، متعهد به کمک به شما برای رسیدن به اهداف سلامتی و تناسب اندامتان است. او دارای مدارک معتبر در فیزیولوژی ورزشی و تکنیک‌های مختلف ماساژ است و با رویکردی جامع و شخصی‌سازی شده، بهترین نتایج را برای شما به ارمغان می‌آورد.
         </p>
-        <p className="text-lg lg:text-xl font-normal text-gray-700 leading-relaxed">
+        <p className="text-base sm:text-lg lg:text-xl font-light text-gray-300 leading-relaxed font-vazirmatn">
           فلسفه [نام مربی] بر پایه تعادل بین فعالیت بدنی، آرامش ذهنی و تغذیه سالم استوار است. او معتقد است که هر فرد منحصربه‌فرد است و برنامه‌های او نیز بر اساس نیازها و اهداف خاص هر مراجعه‌کننده طراحی می‌شوند.
         </p>
       </div>
@@ -283,46 +444,54 @@ const AboutCoachSection = () => (
 );
 
 // Services Section Component
-const ServicesSection = () => (
-  <section className="bg-gradient-to-br from-white to-blue-100 p-8 md:p-12 rounded-3xl shadow-2xl mb-16 border border-blue-200">
-    <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-800 mb-10">خدمات ما</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-      {/* Sports Services Card */}
-      <div className="bg-white p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-3 border border-blue-300">
-        <div className="flex items-center justify-center mb-6">
-          <svg className="w-20 h-20 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2-3-.895-3-2 1.343-2 3-2z"></path>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z"></path>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 21a9 9 0 100-18 9 9 0 000 18z"></path>
-          </svg>
-        </div>
-        <h3 className="text-3xl font-extrabold text-center text-gray-900 mb-6">برنامه‌های ورزشی</h3>
-        <ul className="list-disc list-inside text-lg font-semibold text-gray-700 space-y-3 text-right">
-          <li>طراحی برنامه تمرینی شخصی‌سازی شده (قدرتی، استقامتی، کاهش وزن)</li>
-          <li>چکاپ و ارزیابی پیشرفت برنامه</li>
-          <li>مشاوره تغذیه ورزشی</li>
-          <li>تمرینات اصلاحی و پیشگیری از آسیب</li>
-        </ul>
-      </div>
+const ServicesSection = () => {
+  const [isMassageAnimating, setIsMassageAnimating] = useState(false);
 
-      {/* Massage Services Card */}
-      <div className="bg-white p-8 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-3 border border-teal-300">
-        <div className="flex items-center justify-center mb-6">
-          <svg className="w-20 h-20 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
+  return (
+    <section className="bg-gradient-to-br from-gray-900 to-gray-800 p-10 md:p-16 rounded-2xl shadow-2xl mb-20 border-4 border-blue-700 animate-glow-border">
+      <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-center text-white mb-12 font-lalezar">خدمات ما</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+        {/* Sports Services Card */}
+        <div className="bg-gray-900 p-10 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-3 border-4 border-blue-600">
+          <div className="flex items-center justify-center mb-8">
+            <svg className="w-24 h-24 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c1.657 0 3 .895 3 2s-1.343 2-3 2-3-.895-3-2 1.343-2 3-2z"></path>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2z"></path>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 21a9 9 0 100-18 9 9 0 000 18z"></path>
+            </svg>
+          </div>
+          <h3 className="text-3xl sm:text-4xl font-extrabold text-center text-blue-400 mb-8 font-lalezar">برنامه‌های ورزشی</h3>
+          <ul className="list-disc list-inside text-base sm:text-lg font-light text-gray-300 space-y-4 text-right font-vazirmatn">
+            <li>طراحی برنامه تمرینی شخصی‌سازی شده (قدرتی، استقامتی، کاهش وزن)</li>
+            <li>چکاپ و ارزیابی پیشرفت برنامه</li>
+            <li>مشاوره تغذیه ورزشی</li>
+            <li>تمرینات اصلاحی و پیشگیری از آسیب</li>
+          </ul>
         </div>
-        <h3 className="text-3xl font-extrabold text-center text-gray-900 mb-6">خدمات ماساژ</h3>
-        <ul className="list-disc list-inside text-lg font-semibold text-gray-700 space-y-3 text-right">
-          <li>ماساژ ریلکسی و آرامش‌بخش</li>
-          <li>ماساژ ورزشی (قبل و بعد از تمرین)</li>
-          <li>ماساژ درمانی (کاهش درد عضلانی، بهبود گردش خون)</li>
-          <li>ماساژ با سنگ داغ و روغن‌های معطر</li>
-        </ul>
+
+        {/* Massage Services Card */}
+        <div
+          className="bg-gray-900 p-10 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-3 border-4 border-teal-600"
+          onMouseEnter={() => setIsMassageAnimating(true)}
+          onMouseLeave={() => setIsMassageAnimating(false)}
+          onTouchStart={() => setIsMassageAnimating(true)}
+          onTouchEnd={() => setIsMassageAnimating(false)}
+        >
+          <div className="flex items-center justify-center mb-8">
+            <AnimatedClockIcon isAnimating={isMassageAnimating} />
+          </div>
+          <h3 className="text-3xl sm:text-4xl font-extrabold text-center text-teal-400 mb-8 font-lalezar">خدمات ماساژ</h3>
+          <ul className="list-disc list-inside text-base sm:text-lg font-light text-gray-300 space-y-4 text-right font-vazirmatn">
+            <li>ماساژ ریلکسی و آرامش‌بخش</li>
+            <li>ماساژ ورزشی (قبل و بعد از تمرین)</li>
+            <li>ماساژ درمانی (کاهش درد عضلانی، بهبود گردش خون)</li>
+            <li>ماساژ با سنگ داغ و روغن‌های معطر</li>
+          </ul>
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 // Booking Section Component - Now embeds Google Form for file upload
 const BookingSection = ({ db, userId }) => {
@@ -333,38 +502,152 @@ const BookingSection = ({ db, userId }) => {
   };
 
   return (
-    <section className="bg-white p-8 md:p-12 rounded-3xl shadow-xl mb-16 text-center border border-gray-200">
-      <h2 className="text-4xl lg:text-5xl font-extrabold text-blue-800 mb-10">رزرو نوبت و ارسال برنامه ورزشی</h2>
-      <p className="text-xl lg:text-2xl font-normal text-gray-700 leading-relaxed mb-8">
+    <section className="bg-gray-800 p-10 md:p-16 rounded-2xl shadow-xl mb-20 text-center border-4 border-blue-700 animate-glow-border">
+      <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-blue-500 mb-12 font-lalezar">رزرو نوبت و ارسال برنامه ورزشی</h2>
+      <p className="text-lg sm:text-xl lg:text-2xl font-light text-gray-300 leading-relaxed mb-10 font-vazirmatn">
         برای رزرو نوبت مشاوره ورزشی یا جلسه ماساژ، لطفاً فرم زیر را پر کنید یا با ما تماس بگیرید. همچنین می‌توانید برنامه ورزشی خود را از طریق دکمه زیر برای ما ارسال کنید.
       </p>
-      <div className="bg-blue-50 p-8 rounded-2xl shadow-inner max-w-lg mx-auto border border-blue-200">
-        <p className="text-lg font-semibold text-gray-600 mb-6">
+      <div className="bg-gray-900 p-10 rounded-2xl shadow-inner max-w-lg mx-auto border-2 border-blue-600">
+        <p className="text-base sm:text-lg font-semibold text-gray-400 mb-8 font-vazirmatn">
           این بخش در آینده با یک سیستم رزرو آنلاین کامل‌تر خواهد شد.
         </p>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 text-lg">
+        <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 px-10 sm:px-12 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 text-lg sm:text-xl font-vazirmatn">
           تماس برای رزرو
         </button>
 
-        <div className="mt-8 pt-8 border-t border-blue-300">
-          <h3 className="text-2xl font-extrabold text-gray-900 mb-4">ارسال برنامه ورزشی</h3>
-          <p className="text-lg font-normal text-gray-700 mb-6">
+        <div className="mt-10 pt-10 border-t border-gray-700">
+          <h3 className="text-3xl font-extrabold text-white mb-6 font-lalezar">ارسال برنامه ورزشی</h3>
+          <p className="text-lg font-light text-gray-300 mb-8 font-vazirmatn">
             لطفاً برنامه ورزشی خود را از طریق دکمه زیر برای ما ارسال کنید.
           </p>
           <button
             onClick={handleGoToForm}
-            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300 text-lg"
+            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-10 rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-500 text-lg sm:text-xl tracking-wide font-vazirmatn"
           >
             ارسال برنامه ورزشی
           </button>
           {userId && (
-            <p className="mt-4 text-xs text-gray-500">
-              شناسه کاربری شما: <span className="font-mono text-blue-600 break-all">{userId}</span>
+            <p className="mt-6 text-xs text-gray-500 font-vazirmatn">
+              شناسه کاربری شما: <span className="font-mono text-blue-400 break-all">{userId}</span>
             </p>
           )}
         </div>
       </div>
     </section>
+  );
+};
+
+// AI Chat Section Component - New component for AI chatbot
+const AIChatSection = () => {
+  const [chatHistory, setChatHistory] = useState([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null); // Ref for auto-scrolling
+
+  // Scroll to the latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory]);
+
+  const handleSendMessage = async () => {
+    if (input.trim() === '') return;
+
+    const newUserMessage = { role: "user", parts: [{ text: input }] };
+    setChatHistory((prev) => [...prev, newUserMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Add instruction to the prompt for concise responses and specific tone
+      const promptWithInstruction = `${input}\n\n پاسخ شما باید در حیطه ورزش و ماساژ باشد. لطفا پاسخ خود را مختصر و مفید (حداکثر 100 کلمه) و با لحنی دوستانه و غیررسمی ارائه دهید. از جملاتی که نشان دهد به شما دستور داده شده است (مانند "بر اساس دستور شما") خودداری کنید.`;
+      const payload = { contents: [...chatHistory, { role: "user", parts: [{ text: promptWithInstruction }] }] };
+      const apiKey = ""; // API key will be provided by Canvas runtime
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (result.candidates && result.candidates.length > 0 &&
+          result.candidates[0].content && result.candidates[0].content.parts &&
+          result.candidates[0].content.parts.length > 0) {
+        const aiResponseText = result.candidates[0].content.parts[0].text;
+        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: aiResponseText }] }]);
+      } else {
+        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، مشکلی در دریافت پاسخ از هوش مصنوعی رخ داد." }] }]);
+        console.error("Unexpected API response structure:", result);
+      }
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، خطایی در ارتباط با هوش مصنوعی رخ داد." }] }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !isLoading) {
+      handleSendMessage();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full text-gray-200" dir="rtl"> {/* Added dir="rtl" for chat modal content */}
+      <h3 className="text-3xl sm:text-4xl font-extrabold text-center text-teal-400 mb-6 font-lalezar">مشاور هوش مصنوعی</h3>
+      <p className="text-base sm:text-lg font-light text-gray-300 leading-relaxed mb-6 text-center font-vazirmatn">
+        سوالات خود را در مورد ورزش، ماساژ، تغذیه و سلامتی از مشاور هوش مصنوعی ما بپرسید!
+      </p>
+
+      <div className="flex-grow overflow-y-auto p-4 sm:p-6 space-y-4 rounded-lg bg-gray-900 shadow-inner mb-6 border border-gray-700"> {/* Darker background, stronger border */}
+        {chatHistory.length === 0 && (
+          <p className="text-gray-500 text-center italic font-vazirmatn">هنوز پیامی ارسال نشده است. سوال خود را بپرسید!</p>
+        )}
+        {chatHistory.map((msg, index) => (
+          <div
+            key={index}
+            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[70%] p-3 sm:p-4 rounded-xl shadow-md font-vazirmatn ${ // Larger padding, more rounded
+                msg.role === 'user'
+                  ? 'bg-teal-700 text-white rounded-br-none' // Stronger teal for user
+                  : 'bg-gray-700 text-gray-100 rounded-bl-none' // Darker gray for AI
+              }`}
+            >
+              {msg.parts[0].text}
+            </div>
+          </div>
+        ))}
+        <div ref={messagesEndRef} /> {/* Element to scroll to */}
+      </div>
+
+      {/* Chat Input */}
+      <div className="flex items-center space-x-2 sm:space-x-4 mt-auto"> {/* mt-auto to push to bottom */}
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="سوال خود را اینجا بنویسید..."
+          className="flex-grow p-3 sm:p-4 border border-gray-700 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 text-base sm:text-lg bg-gray-700 text-white placeholder-gray-400 font-vazirmatn" // Darker input, white text
+          disabled={isLoading}
+        />
+        <button
+          onClick={handleSendMessage}
+          disabled={isLoading || input.trim() === ''}
+          className={`py-3 px-6 sm:px-8 rounded-lg shadow-lg transform transition-all duration-300 text-base sm:text-lg font-vazirmatn ${
+            isLoading || input.trim() === ''
+              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              : 'bg-teal-700 hover:bg-teal-800 text-white hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-500' // Teal button
+          }`}
+        >
+          {isLoading ? '...' : 'ارسال'}
+        </button>
+      </div>
+    </div>
   );
 };
 
@@ -407,62 +690,62 @@ const ContactSection = ({ db, userId }) => {
   };
 
   return (
-    <section className="bg-white p-8 md:p-12 rounded-3xl shadow-xl mb-16 border border-gray-200">
-      <h2 className="text-4xl lg:text-5xl font-extrabold text-center text-blue-800 mb-10">تماس با ما</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+    <section className="bg-gray-800 p-10 md:p-16 rounded-2xl shadow-xl mb-20 border-4 border-blue-700 animate-glow-border">
+      <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-center text-blue-500 mb-12 font-lalezar">تماس با ما</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {/* Contact Information */}
-        <div className="bg-blue-50 p-8 rounded-2xl shadow-inner text-right border border-blue-200">
-          <h3 className="text-3xl font-extrabold text-gray-900 mb-6">اطلاعات تماس</h3>
-          <p className="text-lg font-semibold text-gray-700 mb-3">
-            <strong className="text-blue-700">تلفن:</strong> 0912-XXX-XXXX
+        <div className="bg-gray-900 p-10 rounded-2xl shadow-inner text-right border-2 border-blue-600">
+          <h3 className="text-3xl sm:text-4xl font-extrabold text-white mb-8 font-lalezar">اطلاعات تماس</h3>
+          <p className="text-base sm:text-lg font-light text-gray-300 mb-4 font-vazirmatn">
+            <strong className="text-blue-400">تلفن:</strong> 0912-XXX-XXXX
           </p>
-          <p className="text-lg font-semibold text-gray-700 mb-3">
-            <strong className="text-blue-700">ایمیل:</strong> info@sportmassage.com
+          <p className="text-base sm:text-lg font-light text-gray-300 mb-4 font-vazirmatn">
+            <strong className="text-blue-400">ایمیل:</strong> info@sportmassage.com
           </p>
-          <p className="text-lg font-semibold text-gray-700 mb-3">
-            <strong className="text-blue-700">آدرس:</strong> [آدرس باشگاه], [شهر]، ایران
+          <p className="text-base sm:text-lg font-light text-gray-300 mb-4 font-vazirmatn">
+            <strong className="text-blue-400">آدرس:</strong> [آدرس باشگاه], [شهر]، ایران
           </p>
-          <p className="text-lg font-semibold text-gray-700 mt-6">
+          <p className="text-base sm:text-lg font-light text-gray-300 mt-8 font-vazirmatn">
             ما در باشگاه [نام باشگاه] آماده خدمت‌رسانی به شما هستیم.
           </p>
         </div>
 
         {/* Contact Form */}
-        <div className="bg-teal-50 p-8 rounded-2xl shadow-inner border border-teal-200">
-          <h3 className="text-3xl font-extrabold text-center text-gray-900 mb-6 text-right">ارسال پیام</h3>
+        <div className="bg-gray-900 p-10 rounded-2xl shadow-inner border-2 border-teal-600">
+          <h3 className="text-3xl sm:text-4xl font-extrabold text-center text-white mb-8 text-right font-lalezar">ارسال پیام</h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-lg font-semibold text-gray-700 text-right mb-2">نام شما:</label>
+              <label htmlFor="name" className="block text-base sm:text-lg font-semibold text-gray-300 text-right mb-2 font-vazirmatn">نام شما:</label>
               <input
                 type="text"
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 text-lg"
+                className="mt-1 block w-full p-3 sm:p-4 border border-gray-700 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 text-base sm:text-lg bg-gray-700 text-white placeholder-gray-400 font-vazirmatn"
                 placeholder="نام و نام خانوادگی"
                 required
               />
             </div>
             <div>
-              <label htmlFor="email" className="block text-lg font-semibold text-gray-700 text-right mb-2">ایمیل:</label>
+              <label htmlFor="email" className="block text-base sm:text-lg font-semibold text-gray-300 text-right mb-2 font-vazirmatn">ایمیل:</label>
               <input
                 type="email"
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 text-lg"
+                className="mt-1 block w-full p-3 sm:p-4 border border-gray-700 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 text-base sm:text-lg bg-gray-700 text-white placeholder-gray-400 font-vazirmatn"
                 placeholder="ایمیل شما"
                 required
               />
             </div>
             <div>
-              <label htmlFor="message" className="block text-lg font-semibold text-gray-700 text-right mb-2">پیام شما:</label>
+              <label htmlFor="message" className="block text-base sm:text-lg font-semibold text-gray-300 text-right mb-2 font-vazirmatn">پیام شما:</label>
               <textarea
                 id="message"
                 rows="5"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="mt-1 block w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 text-lg"
+                className="mt-1 block w-full p-3 sm:p-4 border border-gray-700 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500 text-base sm:text-lg bg-gray-700 text-white placeholder-gray-400 font-vazirmatn"
                 placeholder="پیام خود را اینجا بنویسید..."
                 required
               ></textarea>
@@ -470,19 +753,19 @@ const ContactSection = ({ db, userId }) => {
             <button
               type="submit"
               disabled={submitStatus === 'loading'}
-              className={`w-full font-bold py-4 px-8 rounded-full shadow-lg transform transition-all duration-300 text-lg ${
+              className={`w-full font-bold py-3 px-8 sm:px-10 rounded-lg shadow-lg transform transition-all duration-300 text-lg sm:text-xl tracking-wide font-vazirmatn ${
                 submitStatus === 'loading'
-                  ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                  : 'bg-teal-600 hover:bg-teal-700 text-white hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300'
+                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  : 'bg-teal-600 hover:bg-teal-700 text-white hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-500'
               }`}
             >
               {submitStatus === 'loading' ? 'در حال ارسال...' : 'ارسال پیام'}
             </button>
             {submitStatus === 'success' && (
-              <p className="mt-4 text-green-700 font-semibold">پیام شما با موفقیت ارسال شد!</p>
+              <p className="mt-4 text-green-500 font-semibold font-vazirmatn">پیام شما با موفقیت ارسال شد!</p>
             )}
             {submitStatus === 'error' && (
-              <p className="mt-4 text-red-700 font-semibold">خطا در ارسال پیام. لطفاً دوباره تلاش کنید.</p>
+              <p className="mt-4 text-red-500 font-semibold font-vazirmatn">خطا در ارسال پیام. لطفاً دوباره تلاش کنید.</p>
             )}
           </form>
         </div>
