@@ -50,16 +50,16 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.jsx'],
     fallback: {
-      "crypto": "crypto-browserify", // Changed
-      "stream": "stream-browserify", // Changed
-      "buffer": "buffer/",           // Changed
-      "util": "util/",               // Changed
-      "assert": "assert/",           // Changed
-      "http": "stream-http",         // Changed
-      "https": "https-browserify",   // Changed
-      "os": "os-browserify/browser", // Changed
-      "url": "url/",                 // Changed
-      "path": "path-browserify"      // Changed
+      "crypto": require.resolve("crypto-browserify"),
+      "stream": require.resolve("stream-browserify"),
+      "buffer": require.resolve("buffer/"),
+      "util": require.resolve("util/"),
+      "assert": require.resolve("assert/"),
+      "http": require.resolve("stream-http"),
+      "https": require.resolve("https-browserify"),
+      "os": require.resolve("os-browserify/browser"),
+      "url": require.resolve("url/"),
+      "path": require.resolve("path-browserify")
     }
   },
   node: {
