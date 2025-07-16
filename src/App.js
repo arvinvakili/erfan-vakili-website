@@ -369,118 +369,6 @@ const BookingSection = ({ db, userId }) => {
   );
 };
 
-// AI Chat Section Component - New component for AI chatbot
-const AIChatSection = () => {
-  const [chatHistory, setChatHistory] = useState([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSendMessage = async () => {
-    if (input.trim() === '') return;
-
-    const newUserMessage = { role: "user", parts: [{ text: input }] };
-    setChatHistory((prev) => [...prev, newUserMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const payload = { contents: [...chatHistory, newUserMessage] };
-      const apiKey = ""; // API key will be provided by Canvas runtime
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
-      if (result.candidates && result.candidates.length > 0 &&
-          result.candidates[0].content && result.candidates[0].content.parts &&
-          result.candidates[0].content.parts.length > 0) {
-        const aiResponseText = result.candidates[0].content.parts[0].text;
-        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: aiResponseText }] }]);
-      } else {
-        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، مشکلی در دریافت پاسخ از هوش مصنوعی رخ داد." }] }]);
-        console.error("Unexpected API response structure:", result);
-      }
-    } catch (error) {
-      console.error("Error calling Gemini API:", error);
-      setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، خطایی در ارتباط با هوش مصنوعی رخ داد." }] }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !isLoading) {
-      handleSendMessage();
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full"> {/* Changed section to div and set height to full */}
-      <h3 className="text-3xl font-extrabold text-center text-blue-800 mb-6">مشاور هوش مصنوعی</h3> {/* Changed h2 to h3 for modal context */}
-      <p className="text-lg font-normal text-gray-700 leading-relaxed mb-6 text-center">
-        سوالات خود را در مورد ورزش، ماساژ، تغذیه و سلامتی از مشاور هوش مصنوعی ما بپرسید!
-      </p>
-
-      <div className="flex-grow overflow-y-auto p-4 space-y-4 rounded-lg bg-gray-100 shadow-inner mb-4"> {/* Changed bg-white to bg-gray-100 */}
-        {chatHistory.length === 0 && (
-          <p className="text-gray-500 text-center italic">هنوز پیامی ارسال نشده است. سوال خود را بپرسید!</p>
-        )}
-        {chatHistory.map((msg, index) => (
-          <div
-            key={index}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[70%] p-3 rounded-lg shadow-sm ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-none'
-                  : 'bg-gray-200 text-gray-800 rounded-bl-none'
-              }`}
-            >
-              {msg.parts[0].text}
-            </div>
-          </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="max-w-[70%] p-3 rounded-lg shadow-sm bg-gray-200 text-gray-800 rounded-bl-none">
-              <span className="animate-pulse">در حال فکر کردن...</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Chat Input */}
-      <div className="flex items-center space-x-2 mt-auto"> {/* mt-auto to push to bottom */}
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="سوال خود را اینجا بنویسید..."
-          className="flex-grow p-3 border border-gray-300 rounded-full shadow-sm focus:ring-teal-500 focus:border-teal-500 text-lg"
-          disabled={isLoading}
-        />
-        <button
-          onClick={handleSendMessage}
-          disabled={isLoading || input.trim() === ''}
-          className={`py-3 px-6 rounded-full shadow-lg transform transition-all duration-300 text-lg ${
-            isLoading || input.trim() === ''
-              ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-              : 'bg-teal-600 hover:bg-teal-700 text-white hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300'
-          }`}
-        >
-          {isLoading ? '...' : 'ارسال'}
-        </button>
-      </div>
-    </div>
-  );
-};
-
 // Contact Section Component - Now sends messages to Firestore
 const ContactSection = ({ db, userId }) => {
   const [name, setName] = useState('');
@@ -589,7 +477,7 @@ const ContactSection = ({ db, userId }) => {
                   : 'bg-teal-600 hover:bg-teal-700 text-white hover:scale-105 focus:outline-none focus:ring-4 focus:ring-teal-300'
               }`}
             >
-              {submitStatus === 'loading' ? '...' : 'ارسال پیام'}
+              {submitStatus === 'loading' ? 'در حال ارسال...' : 'ارسال پیام'}
             </button>
             {submitStatus === 'success' && (
               <p className="mt-4 text-green-700 font-semibold">پیام شما با موفقیت ارسال شد!</p>
