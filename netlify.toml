@@ -1,7 +1,7 @@
 [build]
-  command = "npm install --force && npm run build" # این خط تغییر کرده است
+  command = "npm run build"
   publish = "build"
-  environment = { NODE_VERSION = "18", NODE_OPTIONS = "--openssl-legacy-provider" }
+  environment = { NODE_VERSION = "18", NODE_OPTIONS = "--openssl-legacy-provider" } # این خط برای رفع خطای OpenSSL اضافه شده است
 
 [[redirects]]
   from = "/*"
