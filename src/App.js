@@ -93,7 +93,7 @@ const globalStyles = `
 
   @keyframes bicep-flex {
     0% { transform: rotate(0deg); }
-    50% { transform: rotate(-10deg); } /* Slight flex */
+    50% { transform: rotate(-25deg); } /* Rotate upwards from the elbow */
     100% { transform: rotate(0deg); }
   }
 
@@ -103,7 +103,7 @@ const globalStyles = `
 
   .animate-bicep-flex {
     animation: bicep-flex 1s infinite ease-in-out;
-    transform-origin: bottom right; /* Adjust origin for realistic flex */
+    transform-origin: 16px 12px; /* Set pivot point for the bicep */
   }
 `;
 
@@ -414,16 +414,22 @@ const App = () => {
           className="fixed bottom-8 right-8 bg-blue-700 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500 z-50 flex items-center justify-center text-lg font-bold animate-pulse" // Added pulse animation
           style={{ width: '64px', height: '64px' }} // Slightly larger for prominence
         >
-          {/* New Combined AI Sport Chat Icon */}
+          {/* New Muscular Arm Icon */}
           <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* Bicep (Bodybuilding) - simplified for SVG */}
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#3B82F6"/> {/* Blue circle background */}
-            <path d="M16 12c0 2.21-1.79 4-4 4s-4-1.79-4-4V8h8v4z" fill="#10B981" className="animate-bicep-flex"/> {/* Green bicep */}
-            {/* AI Brain/Chip (simplified) */}
-            <circle cx="12" cy="10" r="2" fill="#FCD34D"/> {/* Yellow circle for AI brain/chip */}
-            <path d="M12 8.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z" fill="#FCD34D"/> {/* Inner AI dot */}
-            {/* Chat Bubble */}
-            <path d="M15 17h-2.5l-2.5 2.5V17H9c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2z" fill="#ECFDF5" opacity="0.9"/> {/* Light bubble */}
+            {/* Background Circle - Optional, but gives a nice base */}
+            <circle cx="12" cy="12" r="10" fill="#3B82F6"/> {/* Blue-500 */}
+
+            {/* Muscular Arm (simplified bicep shape) */}
+            {/* Adjusted path for a more defined bicep and forearm */}
+            <path
+              d="M16 12 C18 10 18 8 16 7 L14 6 C12 5 10 6 10 8 L9 12 C9 14 10 15 12 15 L14 16 C16 17 18 16 16 12 Z"
+              fill="#10B981" /* Teal-600 */
+              className="animate-bicep-flex"
+              style={{ transformOrigin: '16px 12px' }} /* Pivot point for elbow flex */
+            />
+
+            {/* Hand/Fist - simplified */}
+            <circle cx="10" cy="15.5" r="2" fill="#065F46"/> {/* Darker teal for fist */}
           </svg>
         </button>
       )}
