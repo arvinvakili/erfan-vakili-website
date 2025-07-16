@@ -103,7 +103,7 @@ const globalStyles = `
 
   .animate-bicep-flex {
     animation: bicep-flex 1s infinite ease-in-out;
-    /* transform-origin is set inline on the path for precise control */
+    transform-origin: 12px 10px; /* Set pivot point for the bicep */
   }
 `;
 
@@ -414,14 +414,18 @@ const App = () => {
           className="fixed bottom-8 right-8 bg-blue-700 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500 z-50 flex items-center justify-center text-lg font-bold animate-pulse" // Added pulse animation
           style={{ width: '64px', height: '64px' }} // Slightly larger for prominence
         >
-          {/* New Muscular Arm Icon - More defined and white */}
+          {/* Muscular Arm Icon - Clearly defined and white */}
           <svg className="w-10 h-10" fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* Main arm shape - designed to resemble a flexed bicep */}
-            <path
-              d="M19 11c0-2.76-2.24-5-5-5S9 8.24 9 11v5c0 2.76 2.24 5 5 5s5-2.24 5-5v-5zM14 8.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM14 15c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-              className="animate-bicep-flex"
-              style={{ transformOrigin: '14px 11px' }} /* Pivot point for elbow flex */
-            />
+            {/* Upper Arm (Bicep) - Static part */}
+            <path d="M12 5 Q15 7 15 10 Q15 13 12 15 L9 13 Q6 11 9 8 Q12 5 12 5 Z" fill="#FFFFFF"/>
+
+            {/* Forearm and Fist - This group will rotate */}
+            <g className="animate-bicep-flex" style={{ transformOrigin: '12px 10px' }}> {/* Pivot at the elbow */}
+              {/* Forearm */}
+              <path d="M12 10 L10 14 Q9 16 7 16 L5 15 Q4 13 6 11 L8 9 Q10 8 12 10 Z" fill="#FFFFFF"/>
+              {/* Fist */}
+              <circle cx="6" cy="16" r="1.5" fill="#FFFFFF"/>
+            </g>
           </svg>
         </button>
       )}
