@@ -608,17 +608,37 @@ const AIChatSection = () => {
     setIsLoading(true);
 
     try {
+      // Get API Key: Prioritize Netlify env var, then Canvas global, then fallback to empty string
+      let geminiApiKey = "";
+      if (typeof process !== 'undefined' && process.env && process.env.REACT_APP_GEMINI_API_KEY) {
+        geminiApiKey = process.env.REACT_APP_GEMINI_API_KEY;
+        console.log("AIChat: Using REACT_APP_GEMINI_API_KEY from environment.");
+      } else if (typeof window !== 'undefined' && window.parent && window.parent.__gemini_api_key) {
+        // This is a hypothetical way Canvas might inject it, if not via the empty string directly
+        geminiApiKey = window.parent.__gemini_api_key;
+        console.log("AIChat: Using __gemini_api_key from window.parent.");
+      } else {
+        // The default empty string will be filled by Canvas runtime if it's the source
+        console.log("AIChat: Using default empty API key (expecting Canvas runtime to fill).");
+      }
+
       // Add instruction to the prompt for concise responses and specific tone
       const promptWithInstruction = `${input}\n\n پاسخ شما باید در حیطه ورزش و ماساژ باشد. لطفا پاسخ خود را مختصر و مفید (حداکثر 100 کلمه) و با لحنی دوستانه و غیررسمی ارائه دهید. از جملاتی که نشان دهد به شما دستور داده شده است (مانند "بر اساس دستور شما") خودداری کنید.`;
       const payload = { contents: [...chatHistory, { role: "user", parts: [{ text: promptWithInstruction }] }] };
-      const apiKey = ""; // API key will be provided by Canvas runtime
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+      console.log("AIChat: Sending request to API URL:", apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
+      }
 
       const result = await response.json();
       if (result.candidates && result.candidates.length > 0 &&
@@ -627,12 +647,12 @@ const AIChatSection = () => {
         const aiResponseText = result.candidates[0].content.parts[0].text;
         setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: aiResponseText }] }]);
       } else {
-        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، مشکلی در دریافت پاسخ از هوش مصنوعی رخ داد." }] }]);
+        setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، مشکلی در دریافت پاسخ از هوش مصنوعی رخ داد. پاسخ از API خالی بود یا ساختار نامعتبری داشت." }] }]);
         console.error("Unexpected API response structure:", result);
       }
     } catch (error) {
       console.error("Error calling Gemini API:", error);
-      setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، خطایی در ارتباط با هوش مصنوعی رخ داد." }] }]);
+      setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: `متاسفم، خطایی در ارتباط با هوش مصنوعی رخ داد: ${error.message}` }] }]);
     } finally {
       setIsLoading(false);
     }
