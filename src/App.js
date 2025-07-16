@@ -416,16 +416,12 @@ const App = () => {
         >
           {/* New Muscular Arm Icon - More defined and white */}
           <svg className="w-10 h-10" fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* Main arm shape - simplified for clarity */}
+            {/* Main arm shape - designed to resemble a flexed bicep */}
             <path
-              d="M18 10 C18 6 14 6 12 8 Q 10 10 10 12 L 10 16 Q 12 18 14 18 L 16 17 Q 18 15 18 10 Z"
+              d="M19 11c0-2.76-2.24-5-5-5S9 8.24 9 11v5c0 2.76 2.24 5 5 5s5-2.24 5-5v-5zM14 8.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM14 15c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
               className="animate-bicep-flex"
-              style={{ transformOrigin: '14px 14px' }} /* Adjusted pivot point for elbow flex */
+              style={{ transformOrigin: '14px 11px' }} /* Pivot point for elbow flex */
             />
-            {/* Bicep highlight/detail */}
-            <path d="M14 8 Q15 9 15 11 Q14 12 13 11 Q12 10 13 9 Z" fill="#E0E0E0"/> {/* Lighter shade for bicep detail */}
-            {/* Forearm/Fist - simplified */}
-            <circle cx="10.5" cy="16.5" r="1.5" fill="#CCCCCC"/> {/* Grey for fist */}
           </svg>
         </button>
       )}
