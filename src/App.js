@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'; // Added useRef
 // Firebase imports
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'; // Fixed: Removed '=' before 'from'
 
 // Define keyframes for animations and import fonts
 const globalStyles = `
@@ -103,7 +103,7 @@ const globalStyles = `
 
   .animate-bicep-flex {
     animation: bicep-flex 1s infinite ease-in-out;
-    transform-origin: 12px 10px; /* Set pivot point for the bicep */
+    /* transform-origin is set inline on the path for precise control */
   }
 `;
 
@@ -415,16 +415,22 @@ const App = () => {
           style={{ width: '64px', height: '64px' }} // Slightly larger for prominence
         >
           {/* Muscular Arm Icon - Clearly defined and white */}
-          <svg className="w-10 h-10" fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* Upper Arm (Bicep) - Static part */}
-            <path d="M12 5 Q15 7 15 10 Q15 13 12 15 L9 13 Q6 11 9 8 Q12 5 12 5 Z" fill="#FFFFFF"/>
+          <svg className="w-12 h-12" fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            {/* Upper Arm (Bicep - very prominent) */}
+            <path
+              d="M16 6 C18 8 18 12 16 14 C14 16 10 16 8 14 C6 12 6 8 8 6 C10 4 14 4 16 6 Z"
+              fill="#FFFFFF"
+            />
 
-            {/* Forearm and Fist - This group will rotate */}
-            <g className="animate-bicep-flex" style={{ transformOrigin: '12px 10px' }}> {/* Pivot at the elbow */}
+            {/* Forearm and Fist - Group for rotation */}
+            <g className="animate-bicep-flex" style={{ transformOrigin: '8px 14px' }}> {/* Pivot at the elbow */}
               {/* Forearm */}
-              <path d="M12 10 L10 14 Q9 16 7 16 L5 15 Q4 13 6 11 L8 9 Q10 8 12 10 Z" fill="#FFFFFF"/>
+              <path
+                d="M8 14 L6 18 C5 19 4 19 3 18 L2 17 C1 16 2 15 4 14 L6 13 C7 12 8 13 8 14 Z"
+                fill="#FFFFFF"
+              />
               {/* Fist */}
-              <circle cx="6" cy="16" r="1.5" fill="#FFFFFF"/>
+              <circle cx="2.5" cy="17.5" r="1.5" fill="#FFFFFF"/>
             </g>
           </svg>
         </button>
