@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
-
-// Firebase imports
+import React, { useEffect, useState } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, onSnapshot, query, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'; // Added serverTimestamp
 
 // Main App component
 const App = () => {
@@ -19,18 +17,18 @@ const App = () => {
   useEffect(() => {
     const initFirebase = async () => {
       try {
-        // Retrieve Firebase config and app ID from global variables provided by Canvas
-        // These variables are injected by the Canvas environment
-        const firebaseConfigString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id'; // Fallback for appId
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // Retrieve Firebase config and app ID from environment variables provided by Netlify
+        // These variables MUST be prefixed with REACT_APP_ in Netlify settings
+        const firebaseConfigString = process.env.REACT_APP_FIREBASE_CONFIG;
+        const appId = process.env.REACT_APP_APP_ID || 'default-app-id'; // Fallback for appId
+        const initialAuthToken = process.env.REACT_APP_INITIAL_AUTH_TOKEN;
 
-        console.log("Firebase Init: __firebase_config:", firebaseConfigString ? "Available" : "Not Available");
-        console.log("Firebase Init: __app_id:", appId);
-        console.log("Firebase Init: __initial_auth_token:", initialAuthToken ? "Available" : "Not Available");
+        console.log("Firebase Init (Netlify): REACT_APP_FIREBASE_CONFIG:", firebaseConfigString ? "Available" : "Not Available");
+        console.log("Firebase Init (Netlify): REACT_APP_APP_ID:", appId);
+        console.log("Firebase Init (Netlify): REACT_APP_INITIAL_AUTH_TOKEN:", initialAuthToken ? "Available" : "Not Available");
 
         if (!firebaseConfigString) {
-          throw new Error("Firebase config is not available. Please ensure __firebase_config is set in the Canvas environment.");
+          throw new Error("Firebase config is not available. Please ensure REACT_APP_FIREBASE_CONFIG is set as an environment variable in Netlify.");
         }
         const firebaseConfig = JSON.parse(firebaseConfigString);
 
@@ -47,31 +45,32 @@ const App = () => {
           if (user) {
             // User is signed in
             setUserId(user.uid);
-            console.log("Firebase: User signed in with UID:", user.uid);
+            console.log("Firebase (Netlify): User signed in with UID:", user.uid);
             setAuthError(null); // Clear any previous auth errors
           } else {
             // User is signed out or not yet signed in, attempt anonymous sign-in
             try {
               if (initialAuthToken) {
-                console.log("Firebase: Attempting sign-in with custom token...");
+                console.log("Firebase (Netlify): Attempting sign-in with custom token...");
                 await signInWithCustomToken(firebaseAuth, initialAuthToken);
                 setUserId(firebaseAuth.currentUser.uid);
-                console.log("Firebase: Signed in with custom token. UID:", firebaseAuth.currentUser.uid);
+                console.log("Firebase (Netlify): Signed in with custom token. UID:", firebaseAuth.currentUser.uid);
                 setAuthError(null);
               } else {
+                console.log("Firebase (Netlify): Attempting anonymous sign-in...");
                 await signInAnonymously(firebaseAuth);
                 setUserId(firebaseAuth.currentUser.uid);
-                console.log("Firebase: Signed in anonymously. UID:", firebaseAuth.currentUser.uid);
+                console.log("Firebase (Netlify): Signed in anonymously. UID:", firebaseAuth.currentUser.uid);
                 setAuthError(null);
               }
             } catch (authErr) {
-              console.error("Firebase: Authentication failed:", authErr.code, authErr.message);
+              console.error("Firebase (Netlify): Authentication failed:", authErr.code, authErr.message);
               setAuthError(`خطا در احراز هویت Firebase: ${authErr.message} (کد خطا: ${authErr.code}). لطفاً صفحه را بارگذاری مجدد کنید.`);
               setUserId(null); // Ensure userId is null on failure
             }
           }
           setIsAuthReady(true); // Firebase Auth is now ready
-          console.log("Firebase: Auth readiness set to true.");
+          console.log("Firebase (Netlify): Auth readiness set to true.");
         });
 
         // Cleanup the auth listener on component unmount
