@@ -160,32 +160,32 @@ const App = () => {
 
         // --- Debugging Firebase config retrieval ---
         console.log("--- Firebase Init Debug Start ---");
-        console.log("typeof __firebase_config:", typeof __firebase_config);
-        console.log("typeof __app_id:", typeof __app_id);
-        console.log("typeof __initial_auth_token:", typeof __initial_auth_token);
+        console.log("typeof __firebase_config (Canvas global):", typeof __firebase_config);
+        console.log("typeof __app_id (Canvas global):", typeof __app_id);
+        console.log("typeof __initial_auth_token (Canvas global):", typeof __initial_auth_token);
+        console.log("process.env.REACT_APP_FIREBASE_CONFIG (Netlify/local):", typeof process !== 'undefined' && process.env ? process.env.REACT_APP_FIREBASE_CONFIG : "N/A");
+        console.log("process.env.REACT_APP_APP_ID (Netlify/local):", typeof process !== 'undefined' && process.env ? process.env.REACT_APP_APP_ID : "N/A");
+        console.log("--- End Firebase Init Debug Start ---");
 
-        // 1. Attempt to get config from Canvas global variables first (for Canvas environment)
-        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+
+        // Prioritize Netlify/local environment variables first for deployed apps
+        if (typeof process !== 'undefined' && process.env && process.env.REACT_APP_FIREBASE_CONFIG) {
+          firebaseConfigString = process.env.REACT_APP_FIREBASE_CONFIG;
+          appId = process.env.REACT_APP_APP_ID || appId;
+          console.log("Firebase Init: Using REACT_APP_FIREBASE_CONFIG from environment (Netlify/local).");
+        }
+        // Fallback to Canvas global variables for Canvas preview environment
+        else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
           firebaseConfigString = __firebase_config;
           appId = typeof __app_id !== 'undefined' ? __app_id : appId;
           initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
           console.log("Firebase Init: Using __firebase_config from Canvas globals.");
-        }
-        // 2. If not found or empty from Canvas globals, try from process.env (for Netlify/local build)
-        else if (typeof process !== 'undefined' && process.env) {
-          if (process.env.REACT_APP_FIREBASE_CONFIG) {
-            firebaseConfigString = process.env.REACT_APP_FIREBASE_CONFIG;
-            appId = process.env.REACT_APP_APP_ID || appId;
-            // Note: initialAuthToken is typically not passed via REACT_APP_ for custom tokens in Netlify
-            console.log("Firebase Init: Using process.env.REACT_APP_FIREBASE_CONFIG from environment.");
-          }
         }
 
         console.log("Firebase Init: Final firebaseConfigString before parse:", firebaseConfigString);
         console.log("Firebase Init: Final appId:", appId);
         console.log("Firebase Init: Final initialAuthToken:", initialAuthToken ? "Available" : "Not Available");
         console.log("--- Firebase Init Debug End ---");
-        // --- End Debugging ---
 
         if (!firebaseConfigString) {
           throw new Error("Firebase config is not available. Please ensure REACT_APP_FIREBASE_CONFIG is set in Netlify environment variables or __firebase_config in Canvas.");
