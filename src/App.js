@@ -83,6 +83,28 @@ const globalStyles = `
     -webkit-text-fill-color: transparent;
     animation: blue-shine 3s infinite linear;
   }
+
+  /* New AI Icon Animations */
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes bicep-flex {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(-10deg); } /* Slight flex */
+    100% { transform: rotate(0deg); }
+  }
+
+  .animate-pulse {
+    animation: pulse 2s infinite ease-in-out;
+  }
+
+  .animate-bicep-flex {
+    animation: bicep-flex 1s infinite ease-in-out;
+    transform-origin: bottom right; /* Adjust origin for realistic flex */
+  }
 `;
 
 // Component for the animated clock icon
@@ -389,12 +411,19 @@ const App = () => {
       {!isAIChatOpen && ( // Conditionally render the button
         <button
           onClick={() => setIsAIChatOpen(true)}
-          className="fixed bottom-8 right-8 bg-blue-700 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500 z-50 flex items-center justify-center text-lg font-bold"
+          className="fixed bottom-8 right-8 bg-blue-700 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500 z-50 flex items-center justify-center text-lg font-bold animate-pulse" // Added pulse animation
           style={{ width: '64px', height: '64px' }} // Slightly larger for prominence
         >
-          {/* Chat icon */}
-          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+          {/* New Combined AI Sport Chat Icon */}
+          <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            {/* Bicep (Bodybuilding) - simplified for SVG */}
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#3B82F6"/> {/* Blue circle background */}
+            <path d="M16 12c0 2.21-1.79 4-4 4s-4-1.79-4-4V8h8v4z" fill="#10B981" className="animate-bicep-flex"/> {/* Green bicep */}
+            {/* AI Brain/Chip (simplified) */}
+            <circle cx="12" cy="10" r="2" fill="#FCD34D"/> {/* Yellow circle for AI brain/chip */}
+            <path d="M12 8.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z" fill="#FCD34D"/> {/* Inner AI dot */}
+            {/* Chat Bubble */}
+            <path d="M15 17h-2.5l-2.5 2.5V17H9c-1.1 0-2-.9-2-2V7c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2z" fill="#ECFDF5" opacity="0.9"/> {/* Light bubble */}
           </svg>
         </button>
       )}
@@ -413,18 +442,6 @@ const App = () => {
               linear-gradient(-45deg, rgba(255,255,255,0.03) 75%, transparent 75%)
             `,
             backgroundSize: '20px 20px',
-            // Position the modal exactly where the button was
-            // Adjust right and bottom based on the button's size (64px) and its bottom/right-8
-            // The modal itself has p-6 (24px) padding, so its actual content starts 24px in
-            // We want the modal to effectively replace the button's footprint + extend upwards
-            // The button is 64px tall, bottom-8. So its top is bottom-8 + 64px = bottom-72px.
-            // If modal is 400px tall, then its top should be bottom-8 + 64px + 400px = bottom-472px.
-            // This is complex with fixed positioning. A simpler approach is to set its bottom/right
-            // to match the button's bottom/right, and let its height/width expand from there.
-            // The current bottom-24 right-8 is a good starting point for "above the icon".
-            // If the user wants it *exactly* where the icon was, then the icon must be hidden
-            // and the modal's bottom/right must be adjusted.
-            // Let's keep bottom-24 right-8 for "above" and hide the button.
           }}
         >
           <button
