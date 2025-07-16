@@ -59,7 +59,6 @@ const App = () => {
                 console.log("Firebase: Signed in with custom token. UID:", firebaseAuth.currentUser.uid);
                 setAuthError(null);
               } else {
-                console.log("Firebase: Attempting anonymous sign-in...");
                 await signInAnonymously(firebaseAuth);
                 setUserId(firebaseAuth.currentUser.uid);
                 console.log("Firebase: Signed in anonymously. UID:", firebaseAuth.currentUser.uid);
@@ -328,6 +327,8 @@ const ServicesSection = () => (
 
 // Booking Section Component - Now embeds Google Form for file upload
 const BookingSection = ({ db, userId }) => {
+  // Removed file upload states and handlers as they are replaced by Google Form embed
+
   const handleGoToForm = () => {
     window.open('https://forms.gle/zG3FjXZyDq7VahER6', '_blank'); // Open form in a new tab
   };
