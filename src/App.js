@@ -610,17 +610,20 @@ const AIChatSection = () => {
     try {
       // Get API Key: Prioritize Netlify env var, then Canvas global, then fallback to empty string
       let geminiApiKey = "";
+      // Check for Netlify environment variable first
       if (typeof process !== 'undefined' && process.env && process.env.REACT_APP_GEMINI_API_KEY) {
         geminiApiKey = process.env.REACT_APP_GEMINI_API_KEY;
-        console.log("AIChat: Using REACT_APP_GEMINI_API_KEY from environment.");
-      } else if (typeof window !== 'undefined' && window.parent && window.parent.__gemini_api_key) {
-        // This is a hypothetical way Canvas might inject it, if not via the empty string directly
-        geminiApiKey = window.parent.__gemini_api_key;
-        console.log("AIChat: Using __gemini_api_key from window.parent.");
-      } else {
-        // The default empty string will be filled by Canvas runtime if it's the source
-        console.log("AIChat: Using default empty API key (expecting Canvas runtime to fill).");
+        console.log("AIChat: Using REACT_APP_GEMINI_API_KEY from Netlify environment.");
       }
+      // Fallback to Canvas global variable if not found in process.env
+      else if (typeof window !== 'undefined' && window.parent && window.parent.__gemini_api_key) {
+        geminiApiKey = window.parent.__gemini_api_key;
+        console.log("AIChat: Using __gemini_api_key from Canvas parent window.");
+      } else {
+        console.log("AIChat: No specific GEMINI_API_KEY found in environment or Canvas globals. Using default empty string (expecting Canvas runtime to fill if applicable).");
+      }
+
+      console.log("AIChat: Gemini API Key value (first 5 chars):", geminiApiKey.substring(0, 5) + (geminiApiKey.length > 5 ? '...' : '')); // Log partial key for security
 
       // Add instruction to the prompt for concise responses and specific tone
       const promptWithInstruction = `${input}\n\n پاسخ شما باید در حیطه ورزش و ماساژ باشد. لطفا پاسخ خود را مختصر و مفید (حداکثر 100 کلمه) و با لحنی دوستانه و غیررسمی ارائه دهید. از جملاتی که نشان دهد به شما دستور داده شده است (مانند "بر اساس دستور شما") خودداری کنید.`;
@@ -637,6 +640,7 @@ const AIChatSection = () => {
 
       if (!response.ok) {
         const errorBody = await response.text();
+        console.error("AIChat: API Response Error Body:", errorBody);
         throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
       }
 
@@ -648,10 +652,10 @@ const AIChatSection = () => {
         setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: aiResponseText }] }]);
       } else {
         setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: "متاسفم، مشکلی در دریافت پاسخ از هوش مصنوعی رخ داد. پاسخ از API خالی بود یا ساختار نامعتبری داشت." }] }]);
-        console.error("Unexpected API response structure:", result);
+        console.error("AIChat: Unexpected API response structure:", result);
       }
     } catch (error) {
-      console.error("Error calling Gemini API:", error);
+      console.error("AIChat: Error calling Gemini API:", error);
       setChatHistory((prev) => [...prev, { role: "model", parts: [{ text: `متاسفم، خطایی در ارتباط با هوش مصنوعی رخ داد: ${error.message}` }] }]);
     } finally {
       setIsLoading(false);
