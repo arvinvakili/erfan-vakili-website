@@ -103,7 +103,7 @@ const globalStyles = `
 
   .animate-bicep-flex {
     animation: bicep-flex 1s infinite ease-in-out;
-    transform-origin: 16px 12px; /* Set pivot point for the bicep */
+    /* transform-origin is set inline on the path for precise control */
   }
 `;
 
@@ -414,21 +414,18 @@ const App = () => {
           className="fixed bottom-8 right-8 bg-blue-700 text-white p-4 rounded-full shadow-lg hover:bg-blue-800 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500 z-50 flex items-center justify-center text-lg font-bold animate-pulse" // Added pulse animation
           style={{ width: '64px', height: '64px' }} // Slightly larger for prominence
         >
-          {/* New Muscular Arm Icon */}
-          <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {/* Muscular Arm - simplified and more defined */}
+          {/* New Muscular Arm Icon - More defined and white */}
+          <svg className="w-10 h-10" fill="#FFFFFF" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            {/* Main arm shape - simplified for clarity */}
             <path
-              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"
-              fill="#3B82F6" /* Blue-500 for the background circle */
-            />
-            <path
-              d="M15.5 12.5c-.7-.7-1.4-.7-2.1-.7s-1.4 0-2.1.7L9 14.5c-.7.7-1.4.7-2.1 0s-.7-1.4 0-2.1L9.5 10c.7-.7 1.4-.7 2.1-.7s1.4 0 2.1.7L15.5 12.5zM12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-              fill="#10B981" /* Teal-600 for the arm */
+              d="M18 10 C18 6 14 6 12 8 Q 10 10 10 12 L 10 16 Q 12 18 14 18 L 16 17 Q 18 15 18 10 Z"
               className="animate-bicep-flex"
-              style={{ transformOrigin: '12px 10px' }} /* Adjust pivot point for elbow flex */
+              style={{ transformOrigin: '14px 14px' }} /* Adjusted pivot point for elbow flex */
             />
-            {/* Hand/Fist - simplified */}
-            <circle cx="10" cy="15.5" r="2" fill="#065F46"/> {/* Darker teal for fist */}
+            {/* Bicep highlight/detail */}
+            <path d="M14 8 Q15 9 15 11 Q14 12 13 11 Q12 10 13 9 Z" fill="#E0E0E0"/> {/* Lighter shade for bicep detail */}
+            {/* Forearm/Fist - simplified */}
+            <circle cx="10.5" cy="16.5" r="1.5" fill="#CCCCCC"/> {/* Grey for fist */}
           </svg>
         </button>
       )}
